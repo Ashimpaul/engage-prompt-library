@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X, Plus } from 'lucide-react';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -41,6 +41,10 @@ const Navbar = () => {
           </Link>
           <Link to="/browse" className={`font-medium transition-colors hover:text-primary ${location.pathname === '/browse' ? 'text-primary' : ''}`}>
             Browse
+          </Link>
+          <Link to="/create" className="font-medium flex items-center space-x-1 px-4 py-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors">
+            <Plus className="h-4 w-4" />
+            <span>Create Prompt</span>
           </Link>
           <div className="relative">
             <input
@@ -84,6 +88,10 @@ const Navbar = () => {
             </Link>
             <Link to="/browse" className={`font-medium transition-colors hover:text-primary ${location.pathname === '/browse' ? 'text-primary' : ''}`}>
               Browse
+            </Link>
+            <Link to="/create" className={`font-medium flex items-center space-x-1 ${location.pathname === '/create' ? 'text-primary' : ''}`}>
+              <Plus className="h-4 w-4" />
+              <span>Create Prompt</span>
             </Link>
             <Link to="/profile" className={`font-medium transition-colors hover:text-primary ${location.pathname === '/profile' ? 'text-primary' : ''}`}>
               My Profile

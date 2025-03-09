@@ -42,14 +42,14 @@ const PromptForm = () => {
         description: formData.description,
         content: formData.content,
         category: formData.category,
-        tags: formData.tags.split(',').map(tag => tag.trim()),
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
         author: users[0], // In a real app, this would be the logged-in user
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0,
         usageInstructions: formData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
-        aiModels: formData.aiModels.split(',').map(model => model.trim()),
+        aiModels: formData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
         isFeatured: false,
         isTrending: false
       };
@@ -65,7 +65,7 @@ const PromptForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-sm">
       <div className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium mb-1">
@@ -81,6 +81,7 @@ const PromptForm = () => {
             placeholder="E.g., Comprehensive Code Refactoring Assistant"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">A concise, descriptive title that clearly indicates what your prompt does</p>
         </div>
         
         <div>
@@ -97,6 +98,7 @@ const PromptForm = () => {
             placeholder="A brief description of what your prompt does"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">1-2 sentences explaining the purpose and value of your prompt</p>
         </div>
         
         <div>
@@ -113,6 +115,7 @@ const PromptForm = () => {
             placeholder="The full prompt text that users will copy and use with AI models"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">The complete prompt text that users will copy and use with their AI assistant</p>
         </div>
         
         <div>
@@ -149,6 +152,7 @@ const PromptForm = () => {
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="E.g., coding, refactoring, optimization"
           />
+          <p className="text-xs text-gray-500 mt-1">Add relevant tags to help users find your prompt</p>
         </div>
         
         <div>
@@ -164,6 +168,7 @@ const PromptForm = () => {
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Step 1: Copy and paste your code after the prompt&#10;Step 2: Specify any particular concerns"
           />
+          <p className="text-xs text-gray-500 mt-1">Step-by-step instructions to help users effectively use your prompt</p>
         </div>
         
         <div>
@@ -179,21 +184,22 @@ const PromptForm = () => {
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="E.g., GPT-4, Claude, Gemini"
           />
+          <p className="text-xs text-gray-500 mt-1">List which AI models this prompt works best with</p>
         </div>
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-4 pt-4 border-t">
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="px-4 py-2 mr-2 border rounded-md hover:bg-gray-50"
+          className="px-4 py-2 border rounded-md hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
         >
           {isSubmitting ? 'Creating...' : 'Create Prompt'}
         </button>
