@@ -16,18 +16,37 @@ const PromptForm = () => {
     aiModels: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    if (name === 'category' && value === 'custom') {
+      setShowCustomCategoryInput(true);
+    } else if (name === 'category') {
+      setShowCustomCategoryInput(false);
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCustomCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomCategory(e.target.value);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
+    // Prepare the form data with custom category if applicable
+    const finalFormData = {
+      ...formData,
+      category: showCustomCategoryInput ? customCategory : formData.category
+    };
+    
     // Validate form
-    if (!formData.title || !formData.description || !formData.content || !formData.category) {
+    if (!finalFormData.title || !finalFormData.description || !finalFormData.content || !finalFormData.category) {
       toast.error('Please fill in all required fields');
       setIsSubmitting(false);
       return;
@@ -38,18 +57,18 @@ const PromptForm = () => {
       // In a real app, you would send this to a backend
       const newPrompt = {
         id: `prompt${Math.floor(Math.random() * 10000)}`,
-        title: formData.title,
-        description: formData.description,
-        content: formData.content,
-        category: formData.category,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+        title: finalFormData.title,
+        description: finalFormData.description,
+        content: finalFormData.content,
+        category: finalFormData.category,
+        tags: finalFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
         author: users[0], // In a real app, this would be the logged-in user
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0,
-        usageInstructions: formData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
-        aiModels: formData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
+        usageInstructions: finalFormData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
+        aiModels: finalFormData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
         isFeatured: false,
         isTrending: false
       };
@@ -136,8 +155,27 @@ const PromptForm = () => {
                 {category.name}
               </option>
             ))}
+            <option value="custom">Create new category...</option>
           </select>
         </div>
+        
+        {showCustomCategoryInput && (
+          <div>
+            <label htmlFor="customCategory" className="block text-sm font-medium mb-1">
+              Custom Category <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="customCategory"
+              name="customCategory"
+              value={customCategory}
+              onChange={handleCustomCategoryChange}
+              className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter a new category name"
+              required
+            />
+          </div>
+        )}
         
         <div>
           <label htmlFor="tags" className="block text-sm font-medium mb-1">
