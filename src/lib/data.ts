@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -6,6 +7,14 @@ export interface User {
   bio: string;
   joinedDate: string;
   contributions: number;
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  author: User;
+  createdAt: string;
+  promptId: string;
 }
 
 export interface Prompt {
@@ -285,4 +294,42 @@ export function getPromptById(id: string): Prompt | undefined {
 
 export function getUserById(id: string): User | undefined {
   return users.find(user => user.id === id);
+}
+
+// Comments functions
+export function getCommentsByPromptId(promptId: string): Comment[] {
+  try {
+    const comments = JSON.parse(localStorage.getItem('promptComments') || '[]');
+    return comments.filter((comment: Comment) => comment.promptId === promptId);
+  } catch (error) {
+    console.error('Error loading comments from localStorage:', error);
+    return [];
+  }
+}
+
+export function addComment(promptId: string, text: string, userId: string = 'user1'): Comment {
+  try {
+    const comments = JSON.parse(localStorage.getItem('promptComments') || '[]');
+    const user = getUserById(userId);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    const newComment: Comment = {
+      id: `comment${Date.now()}`,
+      text,
+      author: user,
+      createdAt: new Date().toISOString(),
+      promptId
+    };
+    
+    comments.push(newComment);
+    localStorage.setItem('promptComments', JSON.stringify(comments));
+    
+    return newComment;
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
 }

@@ -1,17 +1,32 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { getPromptById } from '../lib/data';
+import { getPromptById, getCommentsByPromptId } from '../lib/data';
 import VoteButton from '../components/VoteButton';
-import { Calendar, Copy, Tag } from 'lucide-react';
+import Comment from '../components/Comment';
+import CommentForm from '../components/CommentForm';
+import { Calendar, Copy, Tag, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PromptDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const prompt = getPromptById(id as string);
+  const [comments, setComments] = useState([]);
+  const [showComments, setShowComments] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      loadComments();
+    }
+  }, [id]);
+
+  const loadComments = () => {
+    const promptComments = getCommentsByPromptId(id as string);
+    setComments(promptComments);
+  };
 
   if (!prompt) {
     return (
@@ -137,7 +152,7 @@ const PromptDetail = () => {
             
             {/* Compatible AI Models */}
             {prompt.aiModels.length > 0 && (
-              <div>
+              <div className="mb-8">
                 <h2 className="text-xl font-bold mb-3">Compatible AI Models</h2>
                 <div className="flex flex-wrap gap-2">
                   {prompt.aiModels.map((model, index) => (
@@ -151,6 +166,40 @@ const PromptDetail = () => {
                 </div>
               </div>
             )}
+            
+            {/* Comments Section */}
+            <div className="border-t border-gray-100 pt-6 mt-8">
+              <button 
+                className="flex items-center mb-4 text-gray-700 hover:text-primary font-medium"
+                onClick={() => setShowComments(!showComments)}
+              >
+                <MessageCircle className="h-5 w-5 mr-2" />
+                <span>Comments ({comments.length})</span>
+                <span className="ml-2 text-sm text-gray-500">
+                  {showComments ? '(hide)' : '(show)'}
+                </span>
+              </button>
+              
+              {showComments && (
+                <div>
+                  <CommentForm promptId={prompt.id} onCommentAdded={loadComments} />
+                  
+                  <div className="mt-6">
+                    {comments.length > 0 ? (
+                      <div className="space-y-1">
+                        {comments.map((comment) => (
+                          <Comment key={comment.id} comment={comment} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-6">
+                        No comments yet. Be the first to comment!
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
