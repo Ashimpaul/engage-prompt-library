@@ -52,11 +52,14 @@ const PromptForm = () => {
       return;
     }
 
-    // Simulate API call to create a prompt
+    // Create a new prompt
     setTimeout(() => {
-      // In a real app, you would send this to a backend
+      // Generate a unique ID
+      const promptId = `prompt${Math.floor(Math.random() * 10000)}`;
+      
+      // Create the new prompt object
       const newPrompt = {
-        id: `prompt${Math.floor(Math.random() * 10000)}`,
+        id: promptId,
         title: finalFormData.title,
         description: finalFormData.description,
         content: finalFormData.content,
@@ -73,13 +76,18 @@ const PromptForm = () => {
         isTrending: false
       };
       
+      // In a real app, you would send this to a backend
+      // For this demo, we'll store it in localStorage
+      const existingPrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
+      const updatedPrompts = [...existingPrompts, newPrompt];
+      localStorage.setItem('userPrompts', JSON.stringify(updatedPrompts));
+      
       console.log('Created new prompt:', newPrompt);
       toast.success('Prompt created successfully!');
       setIsSubmitting(false);
       
-      // In a real app, after successfully creating the prompt, navigate to the detail page
-      // For now, we'll just go back to the home page
-      navigate('/');
+      // Navigate to the newly created prompt
+      navigate(`/prompt/${promptId}`);
     }, 1500);
   };
 

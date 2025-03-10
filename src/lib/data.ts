@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -257,21 +256,31 @@ export const prompts: Prompt[] = [
   }
 ];
 
-// Helper functions
+// Helper functions with localStorage integration
+export function getAllPrompts(): Prompt[] {
+  try {
+    const userPrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
+    return [...prompts, ...userPrompts];
+  } catch (error) {
+    console.error('Error loading user prompts from localStorage:', error);
+    return prompts;
+  }
+}
+
 export function getFeaturedPrompts(): Prompt[] {
-  return prompts.filter(prompt => prompt.isFeatured);
+  return getAllPrompts().filter(prompt => prompt.isFeatured);
 }
 
 export function getTrendingPrompts(): Prompt[] {
-  return prompts.filter(prompt => prompt.isTrending);
+  return getAllPrompts().filter(prompt => prompt.isTrending);
 }
 
 export function getPromptsByCategory(categoryName: string): Prompt[] {
-  return prompts.filter(prompt => prompt.category === categoryName);
+  return getAllPrompts().filter(prompt => prompt.category === categoryName);
 }
 
 export function getPromptById(id: string): Prompt | undefined {
-  return prompts.find(prompt => prompt.id === id);
+  return getAllPrompts().find(prompt => prompt.id === id);
 }
 
 export function getUserById(id: string): User | undefined {
