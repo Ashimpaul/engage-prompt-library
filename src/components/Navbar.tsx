@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Menu, X, Plus, LogIn, LogOut } from 'lucide-react';

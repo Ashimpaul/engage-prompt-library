@@ -8,7 +8,7 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
-  provider: 'google' | 'email';
+  provider: 'demo' | 'email';
 }
 
 interface AuthContextType {
@@ -17,7 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
-  googleSignIn: () => void;
+  demoSignIn: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,19 +52,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     toast.success('Successfully logged out');
   };
 
-  // Simulate Google sign in
-  const googleSignIn = () => {
-    // In a real app, this would redirect to Google OAuth
-    // For our demo, we'll create a mock Google user
-    const mockGoogleUser: User = {
-      id: `google_${Math.random().toString(36).substring(2, 15)}`,
-      name: 'Google User',
-      email: 'user@gmail.com',
-      avatar: 'https://ui-avatars.com/api/?name=Google+User&background=random',
-      provider: 'google'
+  // Demo sign in (previously called googleSignIn)
+  const demoSignIn = () => {
+    // Create a demo user
+    const mockUser: User = {
+      id: `demo_${Math.random().toString(36).substring(2, 15)}`,
+      name: 'Demo User',
+      email: 'demo@example.com',
+      avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=random',
+      provider: 'demo'
     };
     
-    login(mockGoogleUser);
+    login(mockUser);
   };
 
   return (
@@ -75,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         login, 
         logout,
-        googleSignIn
+        demoSignIn
       }}
     >
       {children}

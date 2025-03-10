@@ -11,6 +11,8 @@ import Browse from "./pages/Browse";
 import PromptDetail from "./pages/PromptDetail";
 import { SearchProvider } from "./contexts/SearchContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import Profile from "./pages/Profile";
+import MyPrompts from "./pages/MyPrompts";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
               <Route path="/create" element={<CreatePrompt />} />
               <Route path="/browse" element={<Browse />} />
               <Route path="/prompt/:id" element={<PromptDetail />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/my-prompts" element={<MyPrompts />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
