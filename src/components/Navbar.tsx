@@ -1,14 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Plus } from 'lucide-react';
+import { Search, Menu, X, Plus, LogIn, LogOut } from 'lucide-react';
 import { useSearch } from '../contexts/SearchContext';
+import { useAuth } from '../contexts/AuthContext';
+import AuthModal from './AuthModal';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const location = useLocation();
   const { searchQuery, setSearchQuery, handleSearch } = useSearch();
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,6 +39,14 @@ const Navbar = () => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
   };
 
   return (
@@ -68,12 +88,44 @@ const Navbar = () => {
               onClick={handleSearch}
             />
           </div>
-          <Link 
-            to="/profile" 
-            className="rounded-full flex items-center justify-center h-10 w-10 bg-accent"
-          >
-            <span className="text-sm font-medium text-secondary">AJ</span>
-          </Link>
+          
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="h-10 w-10 cursor-pointer">
+                  <AvatarImage src={user?.avatar} alt={user?.name} />
+                  <AvatarFallback>{user?.name ? getInitials(user.name) : 'U'}</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <div className="px-2 py-1.5 text-sm font-medium">{user?.name}</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">{user?.email}</div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/my-prompts" className="cursor-pointer">My Prompts</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-red-500 cursor-pointer flex items-center"
+                  onClick={logout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <LogIn className="h-4 w-4" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -113,12 +165,40 @@ const Navbar = () => {
               <Plus className="h-4 w-4" />
               <span>Create Prompt</span>
             </Link>
-            <Link to="/profile" className={`font-medium transition-colors hover:text-primary ${location.pathname === '/profile' ? 'text-primary' : ''}`}>
-              My Profile
-            </Link>
+            
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="font-medium transition-colors hover:text-primary">
+                  Profile
+                </Link>
+                <Link to="/my-prompts" className="font-medium transition-colors hover:text-primary">
+                  My Prompts
+                </Link>
+                <button 
+                  onClick={logout}
+                  className="font-medium flex items-center space-x-1 text-red-500"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsAuthModalOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="font-medium flex items-center space-x-1"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
       )}
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </nav>
   );
 };

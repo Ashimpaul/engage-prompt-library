@@ -10,6 +10,7 @@ import CreatePrompt from "./pages/CreatePrompt";
 import Browse from "./pages/Browse";
 import PromptDetail from "./pages/PromptDetail";
 import { SearchProvider } from "./contexts/SearchContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +20,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SearchProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/create" element={<CreatePrompt />} />
-            <Route path="/browse" element={<Browse />} />
-            <Route path="/prompt/:id" element={<PromptDetail />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SearchProvider>
+        <AuthProvider>
+          <SearchProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/create" element={<CreatePrompt />} />
+              <Route path="/browse" element={<Browse />} />
+              <Route path="/prompt/:id" element={<PromptDetail />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SearchProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
