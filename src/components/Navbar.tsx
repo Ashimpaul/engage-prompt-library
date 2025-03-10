@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Menu, X, Plus } from 'lucide-react';
+import { useSearch } from '../contexts/SearchContext';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { searchQuery, setSearchQuery, handleSearch } = useSearch();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +22,12 @@ const Navbar = () => {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   return (
     <nav 
@@ -51,8 +59,14 @@ const Navbar = () => {
               type="text"
               placeholder="Search prompts..."
               className="pl-10 pr-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 w-60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Search 
+              className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 cursor-pointer" 
+              onClick={handleSearch}
+            />
           </div>
           <Link 
             to="/profile" 
@@ -80,8 +94,14 @@ const Navbar = () => {
                 type="text"
                 placeholder="Search prompts..."
                 className="pl-10 pr-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
               />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Search 
+                className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 cursor-pointer" 
+                onClick={handleSearch}
+              />
             </div>
             <Link to="/" className={`font-medium transition-colors hover:text-primary ${location.pathname === '/' ? 'text-primary' : ''}`}>
               Home

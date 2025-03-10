@@ -2,8 +2,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Sparkles, Users } from 'lucide-react';
+import { useSearch } from '../contexts/SearchContext';
 
 const Hero = () => {
+  const { searchQuery, setSearchQuery, handleSearch } = useSearch();
+  
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+  
   return (
     <section className="pt-32 pb-20 px-4 sm:px-6 relative overflow-hidden">
       {/* Background decorations */}
@@ -45,16 +54,27 @@ const Hero = () => {
                 type="text" 
                 placeholder="Search for prompts..." 
                 className="bg-transparent border-none outline-none w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
               />
             </div>
-            <select className="bg-transparent border-none outline-none px-4 py-3 flex-grow text-gray-500">
+            <select 
+              className="bg-transparent border-none outline-none px-4 py-3 flex-grow text-gray-500"
+              onChange={(e) => {
+                // Handle category selection if needed
+              }}
+            >
               <option value="">All Categories</option>
               <option value="creative-writing">Creative Writing</option>
               <option value="programming">Programming</option>
               <option value="business">Business</option>
               <option value="education">Education</option>
             </select>
-            <button className="bg-primary text-white rounded-xl px-6 py-3 font-medium hover:bg-primary/90 transition-all">
+            <button 
+              className="bg-primary text-white rounded-xl px-6 py-3 font-medium hover:bg-primary/90 transition-all"
+              onClick={handleSearch}
+            >
               Search
             </button>
           </div>
