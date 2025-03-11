@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 
 // Define user type
 export interface User {
@@ -17,9 +17,9 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
-  signInWithGoogle: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const supaUser = session.user;
     return {
       id: supaUser.id,
-      name: supaUser.user_metadata.name || supaUser.user_metadata.full_name || 'User',
+      name: supaUser.user_metadata.name || 'User',
       email: supaUser.email || '',
       avatar: supaUser.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(supaUser.user_metadata.name || 'User')}&background=random`,
       provider: supaUser.app_metadata.provider || 'email'
@@ -78,28 +78,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    toast.success('Successfully logged in!');
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(`Login error: ${error.message}`);
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Signup successful! Check your email to confirm your account.');
+    } catch (error: any) {
+      toast.error(`Signup error: ${error.message}`);
+      console.error('Signup error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    toast.success('Successfully logged out');
-  };
-
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    
-    if (error) {
-      toast.error(`Authentication error: ${error.message}`);
-      console.error('Authentication error:', error);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast.success('Successfully logged out');
+    } catch (error: any) {
+      toast.error(`Logout error: ${error.message}`);
+      console.error('Logout error:', error);
     }
   };
 
@@ -110,8 +137,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user, 
         isLoading,
         login, 
-        logout,
-        signInWithGoogle
+        signup,
+        logout
       }}
     >
       {children}
