@@ -1,14 +1,72 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Navigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, Loader } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import PromptCard from '@/components/PromptCard';
+import { Prompt } from '@/lib/data';
 
 const MyPrompts = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserPrompts = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('user_prompts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        // Format the prompts to match the Prompt type
+        const formattedPrompts = data.map(prompt => ({
+          id: prompt.id,
+          title: prompt.title,
+          description: prompt.description,
+          content: prompt.content,
+          category: prompt.category,
+          author: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+          },
+          tags: prompt.tags || [],
+          upvotes: prompt.upvotes,
+          downvotes: prompt.downvotes,
+          createdAt: prompt.created_at,
+          updatedAt: prompt.updated_at,
+          usageInstructions: prompt.usage_instructions || [],
+          aiModels: prompt.ai_models || [],
+          isFeatured: false,
+          isTrending: false
+        }));
+        
+        setPrompts(formattedPrompts);
+      } catch (error: any) {
+        console.error('Error fetching prompts:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchUserPrompts();
+    }
+  }, [isAuthenticated, user]);
 
   // Redirect if not authenticated
   if (!isAuthenticated) {
@@ -22,22 +80,36 @@ const MyPrompts = () => {
         <div className="layout-container">
           <h1 className="text-3xl font-bold mb-8">My Prompts</h1>
           
-          <Alert className="mb-6">
-            <InfoIcon className="h-4 w-4" />
-            <AlertTitle>Demo Feature</AlertTitle>
-            <AlertDescription>
-              This is a demo page. In a real application, your created prompts would be displayed here.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-              <p className="text-muted-foreground mb-4">No prompts yet</p>
-              <p className="text-sm text-gray-500">
-                When you create prompts, they will appear here.
-              </p>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader className="h-8 w-8 animate-spin text-primary" />
             </div>
-          </div>
+          ) : prompts.length === 0 ? (
+            <div>
+              <Alert className="mb-6">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>No prompts yet</AlertTitle>
+                <AlertDescription>
+                  You haven't created any prompts yet. Create your first prompt to see it here.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center">
+                <p className="text-muted-foreground mb-4">Create your first prompt</p>
+                <p className="text-sm text-gray-500">
+                  When you create prompts, they will appear here.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {prompts.map((prompt) => (
+                <div key={prompt.id}>
+                  <PromptCard prompt={prompt} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

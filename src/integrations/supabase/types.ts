@@ -9,7 +9,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          provider: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name?: string | null
+          provider?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          provider?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_prompts: {
+        Row: {
+          ai_models: string[] | null
+          category: string
+          content: string
+          created_at: string
+          description: string
+          downvotes: number | null
+          id: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          upvotes: number | null
+          usage_instructions: string[] | null
+          user_id: string
+        }
+        Insert: {
+          ai_models?: string[] | null
+          category: string
+          content: string
+          created_at?: string
+          description: string
+          downvotes?: number | null
+          id?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          upvotes?: number | null
+          usage_instructions?: string[] | null
+          user_id: string
+        }
+        Update: {
+          ai_models?: string[] | null
+          category?: string
+          content?: string
+          created_at?: string
+          description?: string
+          downvotes?: number | null
+          id?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          upvotes?: number | null
+          usage_instructions?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prompts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

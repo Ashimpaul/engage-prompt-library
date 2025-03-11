@@ -3,19 +3,87 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { getPromptById, getCommentsByPromptId } from '../lib/data';
+import { getCommentsByPromptId } from '../lib/data';
 import VoteButton from '../components/VoteButton';
 import Comment from '../components/Comment';
 import CommentForm from '../components/CommentForm';
-import { Calendar, Copy, Tag, MessageCircle } from 'lucide-react';
+import { Calendar, Copy, Tag, MessageCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Prompt } from '@/lib/data';
 
 const PromptDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const prompt = getPromptById(id as string);
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(true);
+
+  useEffect(() => {
+    const fetchPrompt = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch the prompt from Supabase
+        const { data: promptData, error: promptError } = await supabase
+          .from('user_prompts')
+          .select(`
+            *,
+            profiles:user_id (
+              id,
+              name,
+              email,
+              avatar_url
+            )
+          `)
+          .eq('id', id)
+          .single();
+          
+        if (promptError) {
+          throw promptError;
+        }
+        
+        if (!promptData) {
+          return; // Will show "Prompt Not Found"
+        }
+        
+        // Format the prompt data to match our Prompt type
+        const formattedPrompt: Prompt = {
+          id: promptData.id,
+          title: promptData.title,
+          description: promptData.description,
+          content: promptData.content,
+          category: promptData.category,
+          author: {
+            id: promptData.profiles.id,
+            name: promptData.profiles.name || 'Unknown User',
+            email: promptData.profiles.email || '',
+            avatar: promptData.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`,
+          },
+          tags: promptData.tags || [],
+          upvotes: promptData.upvotes,
+          downvotes: promptData.downvotes,
+          createdAt: promptData.created_at,
+          updatedAt: promptData.updated_at,
+          usageInstructions: promptData.usage_instructions || [],
+          aiModels: promptData.ai_models || [],
+          isFeatured: false,
+          isTrending: false
+        };
+        
+        setPrompt(formattedPrompt);
+      } catch (error) {
+        console.error('Error fetching prompt:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPrompt();
+  }, [id]);
 
   useEffect(() => {
     if (id) {
@@ -27,6 +95,18 @@ const PromptDetail = () => {
     const promptComments = getCommentsByPromptId(id as string);
     setComments(promptComments);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow container mx-auto px-4 py-8 mt-20 flex items-center justify-center">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!prompt) {
     return (

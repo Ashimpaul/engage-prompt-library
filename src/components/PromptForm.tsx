@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { users, categories } from '@/lib/data';
+import { categories } from '@/lib/data';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn } from 'lucide-react';
 import AuthModal from './AuthModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const PromptForm = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const PromptForm = () => {
     setCustomCategory(e.target.value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -63,43 +64,37 @@ const PromptForm = () => {
       return;
     }
 
-    // Create a new prompt
-    setTimeout(() => {
-      // Generate a unique ID
-      const promptId = `prompt${Math.floor(Math.random() * 10000)}`;
-      
-      // Create the new prompt object
-      const newPrompt = {
-        id: promptId,
-        title: finalFormData.title,
-        description: finalFormData.description,
-        content: finalFormData.content,
-        category: finalFormData.category,
-        tags: finalFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-        author: user || users[0], // Use logged in user or fallback to first user
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        upvotes: 0,
-        downvotes: 0,
-        usageInstructions: finalFormData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
-        aiModels: finalFormData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
-        isFeatured: false,
-        isTrending: false
-      };
-      
-      // In a real app, you would send this to a backend
-      // For this demo, we'll store it in localStorage
-      const existingPrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
-      const updatedPrompts = [...existingPrompts, newPrompt];
-      localStorage.setItem('userPrompts', JSON.stringify(updatedPrompts));
-      
-      console.log('Created new prompt:', newPrompt);
+    try {
+      // Insert the prompt into Supabase
+      const { data, error } = await supabase
+        .from('user_prompts')
+        .insert({
+          user_id: user?.id,
+          title: finalFormData.title,
+          description: finalFormData.description,
+          content: finalFormData.content,
+          category: finalFormData.category,
+          tags: finalFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+          usage_instructions: finalFormData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
+          ai_models: finalFormData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
       toast.success('Prompt created successfully!');
-      setIsSubmitting(false);
       
       // Navigate to the newly created prompt
-      navigate(`/prompt/${promptId}`);
-    }, 1500);
+      navigate(`/prompt/${data.id}`);
+    } catch (error: any) {
+      toast.error(`Failed to create prompt: ${error.message}`);
+      console.error('Error creating prompt:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

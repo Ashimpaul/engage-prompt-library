@@ -4,23 +4,86 @@ import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import PromptCard from '../components/PromptCard';
-import { getAllPrompts } from '../lib/data';
 import { useSearch } from '../contexts/SearchContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Prompt } from '@/lib/data';
+import { Loader } from 'lucide-react';
 
 const Browse = () => {
-  const allPrompts = getAllPrompts();
   const location = useLocation();
-  const { setSearchQuery } = useSearch();
-  const [filteredPrompts, setFilteredPrompts] = useState(allPrompts);
+  const { searchQuery, setSearchQuery } = useSearch();
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(true);
   
+  // Fetch all prompts
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .from('user_prompts')
+          .select(`
+            *,
+            profiles:user_id (
+              id,
+              name,
+              email,
+              avatar_url
+            )
+          `)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        // Format the prompts
+        const formattedPrompts: Prompt[] = data.map(prompt => ({
+          id: prompt.id,
+          title: prompt.title,
+          description: prompt.description,
+          content: prompt.content,
+          category: prompt.category,
+          author: {
+            id: prompt.profiles.id,
+            name: prompt.profiles.name || 'Unknown User',
+            email: prompt.profiles.email || '',
+            avatar: prompt.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`,
+          },
+          tags: prompt.tags || [],
+          upvotes: prompt.upvotes,
+          downvotes: prompt.downvotes,
+          createdAt: prompt.created_at,
+          updatedAt: prompt.updated_at,
+          usageInstructions: prompt.usage_instructions || [],
+          aiModels: prompt.ai_models || [],
+          isFeatured: false,
+          isTrending: false
+        }));
+        
+        setPrompts(formattedPrompts);
+        setFilteredPrompts(formattedPrompts);
+      } catch (error) {
+        console.error('Error fetching prompts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPrompts();
+  }, []);
+  
+  // Filter prompts based on search query
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchQuery = params.get('search') || '';
     
     setSearchQuery(searchQuery);
     
-    if (searchQuery) {
-      const filtered = allPrompts.filter(prompt => 
+    if (searchQuery && prompts.length > 0) {
+      const filtered = prompts.filter(prompt => 
         prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         prompt.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         prompt.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -28,9 +91,9 @@ const Browse = () => {
       );
       setFilteredPrompts(filtered);
     } else {
-      setFilteredPrompts(allPrompts);
+      setFilteredPrompts(prompts);
     }
-  }, [location.search, allPrompts, setSearchQuery]);
+  }, [location.search, prompts, setSearchQuery]);
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,7 +105,11 @@ const Browse = () => {
             Explore all prompts shared by the community. Find the perfect prompt for your next project.
           </p>
           
-          {filteredPrompts.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredPrompts.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-xl font-medium text-gray-700 mb-2">No prompts found</h3>
               <p className="text-gray-500">Try adjusting your search criteria or browse all prompts.</p>

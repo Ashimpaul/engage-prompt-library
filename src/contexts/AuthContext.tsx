@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define user type
 export interface User {
@@ -8,7 +10,7 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
-  provider: 'demo' | 'email';
+  provider: string;
 }
 
 interface AuthContextType {
@@ -17,7 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
-  demoSignIn: () => void;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,44 +28,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Convert Supabase user to our User type
+  const formatUser = (session: Session | null): User | null => {
+    if (!session?.user) return null;
+
+    const supaUser = session.user;
+    return {
+      id: supaUser.id,
+      name: supaUser.user_metadata.name || supaUser.user_metadata.full_name || 'User',
+      email: supaUser.email || '',
+      avatar: supaUser.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(supaUser.user_metadata.name || 'User')}&background=random`,
+      provider: supaUser.app_metadata.provider || 'email'
+    };
+  };
+
   // Check if user is already logged in on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('promptverse_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('promptverse_user');
+    // Get initial session
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const formattedUser = formatUser(session);
+        setUser(formattedUser);
       }
-    }
-    setIsLoading(false);
+      
+      setIsLoading(false);
+    };
+
+    initializeAuth();
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const formattedUser = formatUser(session);
+        setUser(formattedUser);
+        toast.success('Successfully signed in!');
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        toast.success('Successfully signed out');
+      }
+    });
+
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('promptverse_user', JSON.stringify(userData));
     toast.success('Successfully logged in!');
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('promptverse_user');
     toast.success('Successfully logged out');
   };
 
-  // Demo sign in (previously called googleSignIn)
-  const demoSignIn = () => {
-    // Create a demo user
-    const mockUser: User = {
-      id: `demo_${Math.random().toString(36).substring(2, 15)}`,
-      name: 'Demo User',
-      email: 'demo@example.com',
-      avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=random',
-      provider: 'demo'
-    };
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
     
-    login(mockUser);
+    if (error) {
+      toast.error(`Authentication error: ${error.message}`);
+      console.error('Authentication error:', error);
+    }
   };
 
   return (
@@ -74,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         login, 
         logout,
-        demoSignIn
+        signInWithGoogle
       }}
     >
       {children}
