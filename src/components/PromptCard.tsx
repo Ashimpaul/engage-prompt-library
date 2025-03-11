@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Prompt } from '../lib/data';
 import VoteButton from './VoteButton';
 import { Calendar, MessageSquare, Tag, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -19,6 +20,8 @@ const PromptCard: React.FC<PromptCardProps> = ({
   onDelete,
   showDeleteButton = false
 }) => {
+  const [isHoveringDelete, setIsHoveringDelete] = useState(false);
+  
   // Date formatting
   const formattedDate = new Date(prompt.createdAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -38,8 +41,23 @@ const PromptCard: React.FC<PromptCardProps> = ({
     return (
       <Link 
         to={`/prompt/${prompt.id}`}
-        className="block hover-lift"
+        className="block hover-lift relative"
       >
+        {showDeleteButton && (
+          <Button
+            variant="outline" 
+            size="sm"
+            className={cn(
+              "absolute -top-2 -right-2 z-10 bg-white rounded-full p-1 w-8 h-8 shadow-md border-gray-200 transition-all",
+              isHoveringDelete ? "bg-destructive hover:bg-destructive/90" : "bg-white hover:bg-gray-100"
+            )}
+            onClick={handleDelete}
+            onMouseEnter={() => setIsHoveringDelete(true)}
+            onMouseLeave={() => setIsHoveringDelete(false)}
+          >
+            <Trash2 className={cn("h-4 w-4", isHoveringDelete ? "text-white" : "text-gray-500")} />
+          </Button>
+        )}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden card-shadow p-4 transition-all hover:border-primary/20">
           <h3 className="font-semibold text-gray-900 line-clamp-1">{prompt.title}</h3>
           <div className="flex items-center mt-2 justify-between">
@@ -62,8 +80,23 @@ const PromptCard: React.FC<PromptCardProps> = ({
     return (
       <Link 
         to={`/prompt/${prompt.id}`}
-        className="group block hover-lift"
+        className="group block hover-lift relative"
       >
+        {showDeleteButton && (
+          <Button
+            variant="outline" 
+            size="sm"
+            className={cn(
+              "absolute -top-2 -right-2 z-10 bg-white rounded-full p-1 w-8 h-8 shadow-md border-gray-200 transition-all",
+              isHoveringDelete ? "bg-destructive hover:bg-destructive/90" : "bg-white hover:bg-gray-100"
+            )}
+            onClick={handleDelete}
+            onMouseEnter={() => setIsHoveringDelete(true)}
+            onMouseLeave={() => setIsHoveringDelete(false)}
+          >
+            <Trash2 className={cn("h-4 w-4", isHoveringDelete ? "text-white" : "text-gray-500")} />
+          </Button>
+        )}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden card-shadow h-full transition-all hover:border-primary/20">
           <div className="absolute top-0 left-0 bg-primary text-white text-xs font-medium px-3 py-1 rounded-br-lg">
             Featured
@@ -112,13 +145,18 @@ const PromptCard: React.FC<PromptCardProps> = ({
   return (
     <div className="group block hover-lift relative">
       {showDeleteButton && (
-        <Button 
-          variant="destructive" 
+        <Button
+          variant="outline" 
           size="sm"
-          className="absolute top-2 right-2 z-10"
+          className={cn(
+            "absolute -top-2 -right-2 z-10 bg-white rounded-full p-1 w-8 h-8 shadow-md border-gray-200 transition-all",
+            isHoveringDelete ? "bg-destructive hover:bg-destructive/90" : "bg-white hover:bg-gray-100"
+          )}
           onClick={handleDelete}
+          onMouseEnter={() => setIsHoveringDelete(true)}
+          onMouseLeave={() => setIsHoveringDelete(false)}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className={cn("h-4 w-4", isHoveringDelete ? "text-white" : "text-gray-500")} />
         </Button>
       )}
       <Link 

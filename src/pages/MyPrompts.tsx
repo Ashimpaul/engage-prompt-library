@@ -44,9 +44,10 @@ const MyPrompts = () => {
           name: user.name || "",
           email: user.email || "",
           avatar: user.avatar || "",
+          // Add default values for missing User properties
           username: user.username || "",
           bio: user.bio || "",
-          joinedDate: user.joinedDate || "",
+          joinedDate: user.joinedDate || new Date().toISOString(),
           contributions: user.contributions || 0
         },
         tags: prompt.tags || [],
