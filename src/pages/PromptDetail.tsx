@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { getCommentsByPromptId } from '../lib/data';
 import VoteButton from '../components/VoteButton';
 import Comment from '../components/Comment';
 import CommentForm from '../components/CommentForm';
@@ -12,13 +10,25 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Prompt } from '@/lib/data';
 
+interface CommentData {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+}
+
 const PromptDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [loading, setLoading] = useState(true);
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState<CommentData[]>([]);
   const [showComments, setShowComments] = useState(true);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -75,6 +85,9 @@ const PromptDetail = () => {
         };
         
         setPrompt(formattedPrompt);
+        
+        // Load comments after prompt is loaded
+        loadComments(promptData.id);
       } catch (error) {
         console.error('Error fetching prompt:', error);
       } finally {
@@ -85,15 +98,45 @@ const PromptDetail = () => {
     fetchPrompt();
   }, [id]);
 
-  useEffect(() => {
-    if (id) {
-      loadComments();
+  const loadComments = async (promptId: string) => {
+    try {
+      setLoadingComments(true);
+      
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            name,
+            avatar_url
+          )
+        `)
+        .eq('prompt_id', promptId)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        throw error;
+      }
+      
+      const formattedComments: CommentData[] = data.map(comment => ({
+        id: comment.id,
+        text: comment.text,
+        createdAt: comment.created_at,
+        author: {
+          id: comment.profiles.id,
+          name: comment.profiles.name || 'Unknown User',
+          avatar: comment.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`
+        }
+      }));
+      
+      setComments(formattedComments);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      toast.error('Failed to load comments');
+    } finally {
+      setLoadingComments(false);
     }
-  }, [id]);
-
-  const loadComments = () => {
-    const promptComments = getCommentsByPromptId(id as string);
-    setComments(promptComments);
   };
 
   if (loading) {
@@ -131,7 +174,6 @@ const PromptDetail = () => {
     );
   }
 
-  // Format date
   const formattedDate = new Date(prompt.createdAt).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -262,10 +304,17 @@ const PromptDetail = () => {
               
               {showComments && (
                 <div>
-                  <CommentForm promptId={prompt.id} onCommentAdded={loadComments} />
+                  <CommentForm 
+                    promptId={prompt.id} 
+                    onCommentAdded={() => loadComments(prompt.id)} 
+                  />
                   
                   <div className="mt-6">
-                    {comments.length > 0 ? (
+                    {loadingComments ? (
+                      <div className="flex justify-center py-8">
+                        <Loader className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : comments.length > 0 ? (
                       <div className="space-y-1">
                         {comments.map((comment) => (
                           <Comment key={comment.id} comment={comment} />

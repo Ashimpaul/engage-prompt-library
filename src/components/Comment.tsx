@@ -1,10 +1,20 @@
 
 import React from 'react';
-import { type Comment } from '../lib/data';
 import { formatDistanceToNow } from 'date-fns';
 
+interface Author {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
 interface CommentProps {
-  comment: Comment;
+  comment: {
+    id: string;
+    text: string;
+    createdAt: string;
+    author: Author;
+  };
 }
 
 const Comment: React.FC<CommentProps> = ({ comment }) => {

@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VoteButtonProps {
   type: 'up' | 'down';
@@ -11,18 +13,98 @@ interface VoteButtonProps {
 }
 
 const VoteButton: React.FC<VoteButtonProps> = ({ type, count, promptId, size = 'md' }) => {
+  const { user, isAuthenticated } = useAuth();
   const [voted, setVoted] = useState(false);
   const [voteCount, setVoteCount] = useState(count);
 
-  const handleVote = () => {
-    if (voted) {
-      setVoted(false);
-      setVoteCount(prevCount => type === 'up' ? prevCount - 1 : prevCount + 1);
-      toast.info(type === 'up' ? 'Upvote removed' : 'Downvote removed');
-    } else {
-      setVoted(true);
-      setVoteCount(prevCount => type === 'up' ? prevCount + 1 : prevCount - 1);
-      toast.success(type === 'up' ? 'Prompt upvoted!' : 'Prompt downvoted');
+  // Check if user has already voted on this prompt
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    const checkExistingVote = async () => {
+      const { data, error } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('prompt_id', promptId)
+        .eq('user_id', user.id)
+        .eq('vote_type', type)
+        .single();
+      
+      if (data && !error) {
+        setVoted(true);
+      }
+    };
+    
+    checkExistingVote();
+  }, [promptId, type, user, isAuthenticated]);
+
+  const handleVote = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to vote');
+      return;
+    }
+
+    try {
+      if (voted) {
+        // Remove the vote
+        const { error } = await supabase
+          .from('votes')
+          .delete()
+          .eq('prompt_id', promptId)
+          .eq('user_id', user.id)
+          .eq('vote_type', type);
+          
+        if (error) throw error;
+        
+        setVoted(false);
+        setVoteCount(prevCount => type === 'up' ? prevCount - 1 : prevCount - 1);
+        toast.info(type === 'up' ? 'Upvote removed' : 'Downvote removed');
+      } else {
+        // Check if there's an opposite vote (if upvoting, check for downvote and vice versa)
+        const oppositeType = type === 'up' ? 'down' : 'up';
+        const { data: oppositeVote } = await supabase
+          .from('votes')
+          .select('*')
+          .eq('prompt_id', promptId)
+          .eq('user_id', user.id)
+          .eq('vote_type', oppositeType)
+          .single();
+          
+        // If there's an opposite vote, remove it
+        if (oppositeVote) {
+          await supabase
+            .from('votes')
+            .delete()
+            .eq('id', oppositeVote.id);
+            
+          // Update count for the opposite type
+          if (oppositeType === 'up') {
+            // Removed an upvote
+            // The trigger will handle updating the prompt's upvote count
+          } else {
+            // Removed a downvote
+            // The trigger will handle updating the prompt's downvote count
+          }
+        }
+        
+        // Add the new vote
+        const { error } = await supabase
+          .from('votes')
+          .insert({
+            prompt_id: promptId,
+            user_id: user.id,
+            vote_type: type
+          });
+          
+        if (error) throw error;
+        
+        setVoted(true);
+        setVoteCount(prevCount => prevCount + 1);
+        toast.success(type === 'up' ? 'Prompt upvoted!' : 'Prompt downvoted');
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      toast.error('Failed to process your vote');
     }
   };
 
