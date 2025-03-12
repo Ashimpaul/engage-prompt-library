@@ -95,8 +95,8 @@ const PromptForm = () => {
       const supabasePrompts = JSON.parse(localStorage.getItem('supabasePrompts') || '[]');
       supabasePrompts.push({
         ...data,
-        author_name: user?.user_metadata?.name || 'Anonymous User',
-        author_avatar: user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=Anonymous+User&background=random`,
+        author_name: user?.name || 'Anonymous User',
+        author_avatar: user?.avatar || `https://ui-avatars.com/api/?name=Anonymous+User&background=random`,
       });
       localStorage.setItem('supabasePrompts', JSON.stringify(supabasePrompts));
 
