@@ -49,7 +49,7 @@ const Index = () => {
               avatar_url
             )
           `)
-          .order('created_at', { ascending: false });
+          .order('upvotes', { ascending: false });  // Order by upvotes descending
 
         if (error) {
           console.error('Error fetching prompts:', error);

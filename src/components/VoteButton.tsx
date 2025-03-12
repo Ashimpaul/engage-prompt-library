@@ -57,37 +57,11 @@ const VoteButton: React.FC<VoteButtonProps> = ({ type, count, promptId, size = '
         if (error) throw error;
         
         setVoted(false);
-        setVoteCount(prevCount => type === 'up' ? prevCount - 1 : prevCount - 1);
+        setVoteCount(prevCount => prevCount - 1);
         toast.info(type === 'up' ? 'Upvote removed' : 'Downvote removed');
       } else {
-        // Check if there's an opposite vote (if upvoting, check for downvote and vice versa)
-        const oppositeType = type === 'up' ? 'down' : 'up';
-        const { data: oppositeVote } = await supabase
-          .from('votes')
-          .select('*')
-          .eq('prompt_id', promptId)
-          .eq('user_id', user.id)
-          .eq('vote_type', oppositeType)
-          .single();
-          
-        // If there's an opposite vote, remove it
-        if (oppositeVote) {
-          await supabase
-            .from('votes')
-            .delete()
-            .eq('id', oppositeVote.id);
-            
-          // Update count for the opposite type
-          if (oppositeType === 'up') {
-            // Removed an upvote
-            // The trigger will handle updating the prompt's upvote count
-          } else {
-            // Removed a downvote
-            // The trigger will handle updating the prompt's downvote count
-          }
-        }
-        
-        // Add the new vote
+        // Add the new vote without removing opposite votes
+        // This allows users to both upvote and downvote
         const { error } = await supabase
           .from('votes')
           .insert({

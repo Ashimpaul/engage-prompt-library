@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -137,7 +136,16 @@ export function getAllPrompts(): Prompt[] {
     ];
     
     console.log('All prompts combined:', allPrompts);
-    return allPrompts;
+    
+    // Sort prompts by upvotes (highest first) and then by downvotes (lowest first)
+    return allPrompts.sort((a, b) => {
+      // First sort by upvotes (descending)
+      if (b.upvotes !== a.upvotes) {
+        return b.upvotes - a.upvotes;
+      }
+      // Then if upvotes are the same, sort by downvotes (ascending)
+      return a.downvotes - b.downvotes;
+    });
   } catch (error) {
     console.error('Error loading prompts:', error);
     return prompts;

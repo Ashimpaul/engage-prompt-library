@@ -6,6 +6,7 @@ import PromptCard from './PromptCard';
 import { getFeaturedPrompts } from '../lib/data';
 
 const FeaturedPrompts = () => {
+  // Get featured prompts which are now sorted by votes
   const featuredPrompts = getFeaturedPrompts();
 
   return (

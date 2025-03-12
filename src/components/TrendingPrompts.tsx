@@ -6,6 +6,7 @@ import PromptCard from './PromptCard';
 import { getTrendingPrompts } from '../lib/data';
 
 const TrendingPrompts = () => {
+  // Get trending prompts which are now sorted by votes
   const trendingPrompts = getTrendingPrompts();
 
   return (
