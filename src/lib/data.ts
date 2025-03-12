@@ -98,7 +98,15 @@ export const prompts: Prompt[] = [];
 export function getAllPrompts(): Prompt[] {
   try {
     const userPrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
-    return [...prompts, ...userPrompts];
+    
+    // Set newly created prompts to be featured and trending for demonstration
+    const enhancedPrompts = userPrompts.map((prompt: Prompt) => ({
+      ...prompt,
+      isFeatured: true,
+      isTrending: true
+    }));
+    
+    return [...prompts, ...enhancedPrompts];
   } catch (error) {
     console.error('Error loading user prompts from localStorage:', error);
     return prompts;
