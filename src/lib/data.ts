@@ -90,25 +90,56 @@ export const categories: Category[] = [
   },
 ];
 
-// Replace mock users and prompts with empty arrays
+// Empty arrays for old mock data
 export const users: User[] = [];
 export const prompts: Prompt[] = [];
 
-// Helper functions with localStorage integration
+// Helper functions with Supabase and localStorage integration
 export function getAllPrompts(): Prompt[] {
   try {
-    const userPrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
+    // Get prompts from both localStorage (for backward compatibility) and Supabase
+    const localStoragePrompts = JSON.parse(localStorage.getItem('userPrompts') || '[]');
     
-    // Set newly created prompts to be featured and trending for demonstration
-    const enhancedPrompts = userPrompts.map((prompt: Prompt) => ({
-      ...prompt,
-      isFeatured: true,
-      isTrending: true
-    }));
+    // Get Supabase prompts from the separate localPrompts storage
+    const supabasePrompts = JSON.parse(localStorage.getItem('supabasePrompts') || '[]');
     
-    return [...prompts, ...enhancedPrompts];
+    console.log('Local storage prompts:', localStoragePrompts);
+    console.log('Supabase prompts:', supabasePrompts);
+    
+    // Combine all prompts
+    const allPrompts = [
+      ...prompts, 
+      ...localStoragePrompts,
+      ...supabasePrompts.map((prompt: any) => {
+        // Transform Supabase data format to match our Prompt interface
+        return {
+          id: prompt.id,
+          title: prompt.title,
+          description: prompt.description,
+          content: prompt.content,
+          category: prompt.category,
+          tags: Array.isArray(prompt.tags) ? prompt.tags : [],
+          author: {
+            id: prompt.user_id || 'anonymous',
+            name: prompt.author_name || 'Anonymous User',
+            avatar: prompt.author_avatar || `https://ui-avatars.com/api/?name=Anonymous+User&background=random`,
+          },
+          createdAt: prompt.created_at || new Date().toISOString(),
+          updatedAt: prompt.updated_at || new Date().toISOString(),
+          upvotes: prompt.upvotes || 0,
+          downvotes: prompt.downvotes || 0,
+          usageInstructions: Array.isArray(prompt.usage_instructions) ? prompt.usage_instructions : [],
+          aiModels: Array.isArray(prompt.ai_models) ? prompt.ai_models : [],
+          isFeatured: true, // Set all user-created prompts as featured
+          isTrending: true, // Set all user-created prompts as trending
+        };
+      })
+    ];
+    
+    console.log('All prompts combined:', allPrompts);
+    return allPrompts;
   } catch (error) {
-    console.error('Error loading user prompts from localStorage:', error);
+    console.error('Error loading prompts:', error);
     return prompts;
   }
 }

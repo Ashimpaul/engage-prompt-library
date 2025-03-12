@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { categories } from '@/lib/data';
@@ -65,6 +66,11 @@ const PromptForm = () => {
     }
 
     try {
+      // Process tags and other array data
+      const tags = finalFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+      const usageInstructions = finalFormData.usageInstructions.split('\n').filter(line => line.trim() !== '');
+      const aiModels = finalFormData.aiModels.split(',').map(model => model.trim()).filter(model => model !== '');
+      
       // Insert the prompt into Supabase
       const { data, error } = await supabase
         .from('user_prompts')
@@ -74,9 +80,9 @@ const PromptForm = () => {
           description: finalFormData.description,
           content: finalFormData.content,
           category: finalFormData.category,
-          tags: finalFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-          usage_instructions: finalFormData.usageInstructions.split('\n').filter(line => line.trim() !== ''),
-          ai_models: finalFormData.aiModels.split(',').map(model => model.trim()).filter(model => model !== ''),
+          tags: tags,
+          usage_instructions: usageInstructions,
+          ai_models: aiModels,
         })
         .select()
         .single();
@@ -85,10 +91,19 @@ const PromptForm = () => {
         throw error;
       }
 
+      // Also save to localStorage for immediate display without requiring a page refresh
+      const supabasePrompts = JSON.parse(localStorage.getItem('supabasePrompts') || '[]');
+      supabasePrompts.push({
+        ...data,
+        author_name: user?.user_metadata?.name || 'Anonymous User',
+        author_avatar: user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=Anonymous+User&background=random`,
+      });
+      localStorage.setItem('supabasePrompts', JSON.stringify(supabasePrompts));
+
       toast.success('Prompt created successfully!');
       
-      // Navigate to the newly created prompt
-      navigate(`/prompt/${data.id}`);
+      // Navigate to the homepage to see the prompt in action
+      navigate('/');
     } catch (error: any) {
       toast.error(`Failed to create prompt: ${error.message}`);
       console.error('Error creating prompt:', error);
