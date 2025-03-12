@@ -1,17 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
-
-// Define user type
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  provider: string;
-}
+import { User } from '@/lib/data';
 
 interface AuthContextType {
   user: User | null;
@@ -38,7 +29,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       name: supaUser.user_metadata.name || 'User',
       email: supaUser.email || '',
       avatar: supaUser.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(supaUser.user_metadata.name || 'User')}&background=random`,
-      provider: supaUser.app_metadata.provider || 'email'
+      username: supaUser.user_metadata.username || '',
+      bio: supaUser.user_metadata.bio || '',
+      joinedDate: supaUser.created_at || new Date().toISOString(),
+      contributions: 0
     };
   };
 

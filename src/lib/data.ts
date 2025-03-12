@@ -1,12 +1,12 @@
-
 export interface User {
   id: string;
   name: string;
-  username: string;
+  email?: string;
   avatar: string;
-  bio: string;
-  joinedDate: string;
-  contributions: number;
+  username?: string;
+  bio?: string;
+  joinedDate?: string;
+  contributions?: number;
 }
 
 export interface Comment {
@@ -48,7 +48,7 @@ export const users: User[] = [
   {
     id: "user1",
     name: "Alex Johnson",
-    username: "alexj",
+    email: "alexj@example.com",
     avatar: "https://i.pravatar.cc/150?img=1",
     bio: "AI researcher and prompt engineer with 5+ years experience in NLP.",
     joinedDate: "Jan 2023",
@@ -57,7 +57,7 @@ export const users: User[] = [
   {
     id: "user2",
     name: "Samantha Lee",
-    username: "samlee",
+    email: "samlee@example.com",
     avatar: "https://i.pravatar.cc/150?img=5",
     bio: "Creative writer using AI to generate story ideas and character development.",
     joinedDate: "Mar 2023",
@@ -66,7 +66,7 @@ export const users: User[] = [
   {
     id: "user3",
     name: "Marcus Chen",
-    username: "mchen",
+    email: "mchen@example.com",
     avatar: "https://i.pravatar.cc/150?img=3",
     bio: "Full stack developer and AI enthusiast. Building tools that leverage LLMs.",
     joinedDate: "Dec 2022",
@@ -75,7 +75,7 @@ export const users: User[] = [
   {
     id: "user4",
     name: "Olivia Parker",
-    username: "oliviap",
+    email: "oliviap@example.com",
     avatar: "https://i.pravatar.cc/150?img=8",
     bio: "Digital marketing specialist using AI to improve content strategy.",
     joinedDate: "Feb 2023",

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -8,7 +9,7 @@ import CommentForm from '../components/CommentForm';
 import { Calendar, Copy, Tag, MessageCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Prompt } from '@/lib/data';
+import { Prompt, User } from '@/lib/data';
 
 interface CommentData {
   id: string;
@@ -70,8 +71,12 @@ const PromptDetail = () => {
           author: {
             id: promptData.profiles.id,
             name: promptData.profiles.name || 'Unknown User',
-            email: promptData.profiles.email || '',
             avatar: promptData.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`,
+            // Add optional fields with default values
+            username: '',
+            bio: '',
+            joinedDate: promptData.created_at,
+            contributions: 0
           },
           tags: promptData.tags || [],
           upvotes: promptData.upvotes,
@@ -124,9 +129,9 @@ const PromptDetail = () => {
         text: comment.text,
         createdAt: comment.created_at,
         author: {
-          id: comment.profiles.id,
-          name: comment.profiles.name || 'Unknown User',
-          avatar: comment.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`
+          id: comment.profiles?.id || '',
+          name: comment.profiles?.name || 'Unknown User',
+          avatar: comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`
         }
       }));
       

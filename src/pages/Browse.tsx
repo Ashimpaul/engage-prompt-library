@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import PromptCard from '../components/PromptCard';
 import { useSearch } from '../contexts/SearchContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Prompt } from '@/lib/data';
+import { Prompt, User } from '@/lib/data';
 import { Loader } from 'lucide-react';
 
 const Browse = () => {
@@ -49,8 +49,12 @@ const Browse = () => {
           author: {
             id: prompt.profiles.id,
             name: prompt.profiles.name || 'Unknown User',
-            email: prompt.profiles.email || '',
             avatar: prompt.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`,
+            // Add optional fields with default values
+            username: '',
+            bio: '',
+            joinedDate: prompt.created_at,
+            contributions: 0
           },
           tags: prompt.tags || [],
           upvotes: prompt.upvotes,
