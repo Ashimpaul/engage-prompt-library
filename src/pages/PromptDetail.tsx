@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -54,10 +53,13 @@ const PromptDetail = () => {
           .single();
           
         if (promptError) {
-          throw promptError;
+          console.error('Error fetching prompt:', promptError);
+          setLoading(false);
+          return; // Will show "Prompt Not Found"
         }
         
         if (!promptData) {
+          setLoading(false);
           return; // Will show "Prompt Not Found"
         }
         
@@ -69,9 +71,9 @@ const PromptDetail = () => {
           content: promptData.content,
           category: promptData.category,
           author: {
-            id: promptData.profiles.id,
-            name: promptData.profiles.name || 'Unknown User',
-            avatar: promptData.profiles.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`,
+            id: promptData.user_id,
+            name: promptData.profiles?.name || 'Anonymous User',
+            avatar: promptData.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(promptData.profiles?.name || 'Anonymous User')}&background=random`,
             // Add optional fields with default values
             username: '',
             bio: '',
