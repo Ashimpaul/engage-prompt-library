@@ -107,33 +107,55 @@ const PromptDetail = () => {
     try {
       setLoadingComments(true);
       
-      const { data, error } = await supabase
+      // First, get comment data
+      const { data: commentData, error: commentError } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('prompt_id', promptId)
         .order('created_at', { ascending: false });
         
-      if (error) {
-        throw error;
+      if (commentError) {
+        throw commentError;
       }
       
-      const formattedComments: CommentData[] = data.map(comment => ({
-        id: comment.id,
-        text: comment.text,
-        createdAt: comment.created_at,
-        author: {
-          id: comment.profiles?.id || '',
-          name: comment.profiles?.name || 'Unknown User',
-          avatar: comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=Unknown+User&background=random`
-        }
-      }));
+      if (!commentData || commentData.length === 0) {
+        setComments([]);
+        return;
+      }
+      
+      // With the comment data, we need to fetch user profiles separately
+      const formattedComments: CommentData[] = await Promise.all(
+        commentData.map(async (comment) => {
+          // Get the profile for each comment
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .eq('id', comment.user_id)
+            .single();
+            
+          let authorData = {
+            id: comment.user_id,
+            name: 'Unknown User',
+            avatar: `https://ui-avatars.com/api/?name=Unknown+User&background=random`
+          };
+          
+          // If profile exists and no error, use that data
+          if (profile && !profileError) {
+            authorData = {
+              id: profile.id,
+              name: profile.name || 'Unknown User',
+              avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'Unknown User')}&background=random`
+            };
+          }
+          
+          return {
+            id: comment.id,
+            text: comment.text,
+            createdAt: comment.created_at,
+            author: authorData
+          };
+        })
+      );
       
       setComments(formattedComments);
     } catch (error) {
