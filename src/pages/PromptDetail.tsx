@@ -37,7 +37,6 @@ const PromptDetail = () => {
       try {
         setLoading(true);
         
-        // Fetch the prompt from Supabase with explicit join to profiles
         const { data: promptData, error: promptError } = await supabase
           .from('user_prompts')
           .select(`
@@ -63,7 +62,6 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
-        // Format the prompt data to match our Prompt type
         const formattedPrompt: Prompt = {
           id: promptData.id,
           title: promptData.title,
@@ -74,7 +72,6 @@ const PromptDetail = () => {
             id: promptData.user_id,
             name: promptData.profiles?.name || 'Anonymous User',
             avatar: promptData.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(promptData.profiles?.name || 'Anonymous User')}&background=random`,
-            // Add optional fields with default values
             username: '',
             bio: '',
             joinedDate: promptData.created_at,
@@ -93,7 +90,6 @@ const PromptDetail = () => {
         
         setPrompt(formattedPrompt);
         
-        // Load comments after prompt is loaded
         loadComments(promptData.id);
       } catch (error) {
         console.error('Error fetching prompt:', error);
@@ -109,10 +105,19 @@ const PromptDetail = () => {
     try {
       setLoadingComments(true);
       
-      // First, get comment data
       const { data: commentData, error: commentError } = await supabase
         .from('comments')
-        .select('*')
+        .select(`
+          id,
+          text,
+          created_at,
+          user_id,
+          profiles:user_id (
+            id,
+            name,
+            avatar_url
+          )
+        `)
         .eq('prompt_id', promptId)
         .order('created_at', { ascending: false });
         
@@ -125,39 +130,19 @@ const PromptDetail = () => {
         return;
       }
       
-      // With the comment data, we need to fetch user profiles separately
-      const formattedComments: CommentData[] = await Promise.all(
-        commentData.map(async (comment) => {
-          // Get the profile for each comment
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, avatar_url')
-            .eq('id', comment.user_id)
-            .single();
-            
-          let authorData = {
+      const formattedComments: CommentData[] = commentData.map((comment) => {
+        return {
+          id: comment.id,
+          text: comment.text,
+          createdAt: comment.created_at,
+          author: {
             id: comment.user_id,
-            name: 'Unknown User',
-            avatar: `https://ui-avatars.com/api/?name=Unknown+User&background=random`
-          };
-          
-          // If profile exists and no error, use that data
-          if (profile && !profileError) {
-            authorData = {
-              id: profile.id,
-              name: profile.name || 'Unknown User',
-              avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'Unknown User')}&background=random`
-            };
+            name: comment.profiles?.name || 'Anonymous User',
+            avatar: comment.profiles?.avatar_url || 
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.profiles?.name || 'Anonymous User')}&background=random`
           }
-          
-          return {
-            id: comment.id,
-            text: comment.text,
-            createdAt: comment.created_at,
-            author: authorData
-          };
-        })
-      );
+        };
+      });
       
       setComments(formattedComments);
     } catch (error) {
@@ -220,7 +205,6 @@ const PromptDetail = () => {
       <main className="flex-grow container mx-auto px-4 py-8 mt-20">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden card-shadow p-6 md:p-8">
-            {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <span className="px-3 py-1 bg-accent text-secondary text-sm font-medium rounded-full">
                 {prompt.category}
@@ -231,12 +215,10 @@ const PromptDetail = () => {
               </div>
             </div>
             
-            {/* Title */}
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               {prompt.title}
             </h1>
             
-            {/* Author & Date */}
             <div className="flex items-center mb-6">
               <img 
                 src={prompt.author.avatar} 
@@ -252,12 +234,10 @@ const PromptDetail = () => {
               </div>
             </div>
             
-            {/* Description */}
             <p className="text-gray-700 text-lg mb-8">
               {prompt.description}
             </p>
             
-            {/* Tags */}
             {prompt.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-8">
                 {prompt.tags.map((tag, index) => (
@@ -272,7 +252,6 @@ const PromptDetail = () => {
               </div>
             )}
             
-            {/* Prompt Content */}
             <div className="mb-8">
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-xl font-bold">Prompt Content</h2>
@@ -289,7 +268,6 @@ const PromptDetail = () => {
               </div>
             </div>
             
-            {/* Usage Instructions */}
             {prompt.usageInstructions.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-xl font-bold mb-3">How to Use This Prompt</h2>
@@ -301,7 +279,6 @@ const PromptDetail = () => {
               </div>
             )}
             
-            {/* Compatible AI Models */}
             {prompt.aiModels.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-xl font-bold mb-3">Compatible AI Models</h2>
@@ -318,7 +295,6 @@ const PromptDetail = () => {
               </div>
             )}
             
-            {/* Comments Section */}
             <div className="border-t border-gray-100 pt-6 mt-8">
               <button 
                 className="flex items-center mb-4 text-gray-700 hover:text-primary font-medium"
