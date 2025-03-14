@@ -112,7 +112,7 @@ const PromptDetail = () => {
           text,
           created_at,
           user_id,
-          profiles:user_id (
+          profiles (
             id,
             name,
             avatar_url
