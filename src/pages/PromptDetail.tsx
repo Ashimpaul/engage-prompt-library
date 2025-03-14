@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -105,6 +106,7 @@ const PromptDetail = () => {
     try {
       setLoadingComments(true);
       
+      // First, fetch all comments for this prompt
       const { data: commentData, error: commentError } = await supabase
         .from('comments')
         .select('id, text, created_at, user_id')
@@ -120,27 +122,37 @@ const PromptDetail = () => {
         return;
       }
       
-      const commentsWithAuthors: CommentData[] = await Promise.all(
-        commentData.map(async (comment) => {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('name, avatar_url')
-            .eq('id', comment.user_id)
-            .single();
-          
-          return {
-            id: comment.id,
-            text: comment.text,
-            createdAt: comment.created_at,
-            author: {
-              id: comment.user_id,
-              name: profileData?.name || 'Anonymous User',
-              avatar: profileData?.avatar_url || 
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData?.name || 'Anonymous User')}&background=random`
-            }
-          };
-        })
-      );
+      // Get unique user IDs from comments to fetch profiles in bulk
+      const userIds = [...new Set(commentData.map(comment => comment.user_id))];
+      
+      // Fetch all profiles for these users in a single request
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', userIds);
+      
+      // Create a mapping of user_id to profile data for faster lookup
+      const profileMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+        map[profile.id] = profile;
+        return map;
+      }, {});
+      
+      // Map comments with their author profiles
+      const commentsWithAuthors: CommentData[] = commentData.map(comment => {
+        const profile = profileMap[comment.user_id];
+        
+        return {
+          id: comment.id,
+          text: comment.text,
+          createdAt: comment.created_at,
+          author: {
+            id: comment.user_id,
+            name: profile?.name || 'Anonymous User',
+            avatar: profile?.avatar_url || 
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'Anonymous User')}&background=random`
+          }
+        };
+      });
       
       setComments(commentsWithAuthors);
     } catch (error) {
@@ -308,8 +320,8 @@ const PromptDetail = () => {
               {showComments && (
                 <div>
                   <CommentForm 
-                    promptId={prompt.id} 
-                    onCommentAdded={() => loadComments(prompt.id)} 
+                    promptId={prompt!.id} 
+                    onCommentAdded={() => loadComments(prompt!.id)} 
                   />
                   
                   <div className="mt-6">
