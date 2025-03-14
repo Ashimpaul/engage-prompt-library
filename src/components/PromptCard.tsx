@@ -36,6 +36,9 @@ const PromptCard: React.FC<PromptCardProps> = ({
     }
   };
 
+  // Display the author name, falling back to "Anonymous User" only if necessary
+  const authorName = prompt.author.name || 'Anonymous User';
+
   if (variant === 'compact') {
     return (
       <Link 
@@ -63,10 +66,10 @@ const PromptCard: React.FC<PromptCardProps> = ({
             <div className="flex items-center">
               <img 
                 src={prompt.author.avatar} 
-                alt={prompt.author.name} 
+                alt={authorName} 
                 className="h-5 w-5 rounded-full mr-2"
               />
-              <span className="text-xs text-gray-500">{prompt.author.name}</span>
+              <span className="text-xs text-gray-500">{authorName}</span>
             </div>
             <VoteButton type="up" count={prompt.upvotes} promptId={prompt.id} size="sm" />
           </div>
@@ -122,11 +125,11 @@ const PromptCard: React.FC<PromptCardProps> = ({
               <div className="flex items-center">
                 <img 
                   src={prompt.author.avatar} 
-                  alt={prompt.author.name} 
+                  alt={authorName} 
                   className="h-8 w-8 rounded-full mr-2 border-2 border-white"
                 />
                 <div>
-                  <p className="text-sm font-medium">{prompt.author.name}</p>
+                  <p className="text-sm font-medium">{authorName}</p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Calendar className="inline h-3 w-3 mr-1" />
                     {formattedDate}
@@ -195,11 +198,11 @@ const PromptCard: React.FC<PromptCardProps> = ({
               <div className="flex items-center">
                 <img 
                   src={prompt.author.avatar} 
-                  alt={prompt.author.name} 
+                  alt={authorName} 
                   className="h-8 w-8 rounded-full mr-2 border-2 border-white"
                 />
                 <div>
-                  <p className="text-sm font-medium">{prompt.author.name}</p>
+                  <p className="text-sm font-medium">{authorName}</p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Calendar className="inline h-3 w-3 mr-1" />
                     {formattedDate}

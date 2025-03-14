@@ -37,7 +37,7 @@ const PromptDetail = () => {
       try {
         setLoading(true);
         
-        // Fetch the prompt from Supabase
+        // Fetch the prompt from Supabase with explicit join to profiles
         const { data: promptData, error: promptError } = await supabase
           .from('user_prompts')
           .select(`

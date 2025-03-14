@@ -1,13 +1,77 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowRight, TrendingUp, Loader } from 'lucide-react';
 import PromptCard from './PromptCard';
-import { getTrendingPrompts } from '../lib/data';
+import { supabase } from '@/integrations/supabase/client';
+import { Prompt } from '@/lib/data';
 
 const TrendingPrompts = () => {
-  // Get trending prompts which are now sorted by votes
-  const trendingPrompts = getTrendingPrompts();
+  const [trendingPrompts, setTrendingPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrendingPrompts = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch prompts ordered by upvotes (descending)
+        const { data: promptsData, error } = await supabase
+          .from('user_prompts')
+          .select(`
+            *,
+            profiles:user_id (
+              id,
+              name,
+              email,
+              avatar_url
+            )
+          `)
+          .order('upvotes', { ascending: false })
+          .limit(3);
+          
+        if (error) {
+          console.error('Error fetching trending prompts:', error);
+          return;
+        }
+        
+        // Format the prompts data to match our Prompt type
+        const formattedPrompts: Prompt[] = promptsData.map(prompt => ({
+          id: prompt.id,
+          title: prompt.title,
+          description: prompt.description,
+          content: prompt.content,
+          category: prompt.category,
+          author: {
+            id: prompt.user_id,
+            name: prompt.profiles?.name || 'Anonymous User',
+            avatar: prompt.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(prompt.profiles?.name || 'Anonymous User')}&background=random`,
+            username: '',
+            bio: '',
+            joinedDate: prompt.created_at,
+            contributions: 0
+          },
+          tags: prompt.tags || [],
+          upvotes: prompt.upvotes,
+          downvotes: prompt.downvotes,
+          createdAt: prompt.created_at,
+          updatedAt: prompt.updated_at,
+          usageInstructions: prompt.usage_instructions || [],
+          aiModels: prompt.ai_models || [],
+          isFeatured: false,
+          isTrending: true
+        }));
+        
+        setTrendingPrompts(formattedPrompts);
+      } catch (error) {
+        console.error('Error fetching trending prompts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTrendingPrompts();
+  }, []);
 
   return (
     <section className="py-20 px-4 sm:px-6 bg-accent/30">
@@ -28,13 +92,19 @@ const TrendingPrompts = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {trendingPrompts.map((prompt) => (
-            <div key={prompt.id} className="animate-on-scroll">
-              <PromptCard prompt={prompt} />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {trendingPrompts.map((prompt) => (
+              <div key={prompt.id} className="animate-on-scroll">
+                <PromptCard prompt={prompt} />
+              </div>
+            ))}
+          </div>
+        )}
         
         <div className="mt-10 text-center md:hidden">
           <Link 
