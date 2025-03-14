@@ -107,17 +107,7 @@ const PromptDetail = () => {
       
       const { data: commentData, error: commentError } = await supabase
         .from('comments')
-        .select(`
-          id,
-          text,
-          created_at,
-          user_id,
-          profiles (
-            id,
-            name,
-            avatar_url
-          )
-        `)
+        .select('id, text, created_at, user_id')
         .eq('prompt_id', promptId)
         .order('created_at', { ascending: false });
         
@@ -130,21 +120,29 @@ const PromptDetail = () => {
         return;
       }
       
-      const formattedComments: CommentData[] = commentData.map((comment) => {
-        return {
-          id: comment.id,
-          text: comment.text,
-          createdAt: comment.created_at,
-          author: {
-            id: comment.user_id,
-            name: comment.profiles?.name || 'Anonymous User',
-            avatar: comment.profiles?.avatar_url || 
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.profiles?.name || 'Anonymous User')}&background=random`
-          }
-        };
-      });
+      const commentsWithAuthors: CommentData[] = await Promise.all(
+        commentData.map(async (comment) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name, avatar_url')
+            .eq('id', comment.user_id)
+            .single();
+          
+          return {
+            id: comment.id,
+            text: comment.text,
+            createdAt: comment.created_at,
+            author: {
+              id: comment.user_id,
+              name: profileData?.name || 'Anonymous User',
+              avatar: profileData?.avatar_url || 
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData?.name || 'Anonymous User')}&background=random`
+            }
+          };
+        })
+      );
       
-      setComments(formattedComments);
+      setComments(commentsWithAuthors);
     } catch (error) {
       console.error('Error loading comments:', error);
       toast.error('Failed to load comments');
