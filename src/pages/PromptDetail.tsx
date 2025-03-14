@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -10,6 +9,7 @@ import { Calendar, Copy, Tag, MessageCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Prompt, User } from '@/lib/data';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface CommentData {
   id: string;
@@ -119,40 +119,51 @@ const PromptDetail = () => {
       
       if (!commentData || commentData.length === 0) {
         setComments([]);
+        setLoadingComments(false);
         return;
       }
-      
-      // Get unique user IDs from comments to fetch profiles in bulk
+
+      // Get unique user IDs from comments
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
       
-      // Fetch all profiles for these users in a single request
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', userIds);
-      
-      // Create a mapping of user_id to profile data for faster lookup
-      const profileMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {});
-      
-      // Map comments with their author profiles
-      const commentsWithAuthors: CommentData[] = commentData.map(comment => {
-        const profile = profileMap[comment.user_id];
-        
-        return {
-          id: comment.id,
-          text: comment.text,
-          createdAt: comment.created_at,
-          author: {
-            id: comment.user_id,
-            name: profile?.name || 'Anonymous User',
-            avatar: profile?.avatar_url || 
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'Anonymous User')}&background=random`
+      // For each user ID, try to get the profile
+      // Sometimes users might be deleted but their comments remain
+      const commentsWithAuthors = await Promise.all(
+        commentData.map(async (comment) => {
+          // Try to get user email from auth.users if available (this is just a fallback)
+          let userName = '';
+          let avatarUrl = '';
+          
+          // Attempt to fetch the profile directly
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, avatar_url, email')
+            .eq('id', comment.user_id)
+            .single();
+          
+          if (profile) {
+            userName = profile.name || profile.email || '';
+            avatarUrl = profile.avatar_url || '';
           }
-        };
-      });
+          
+          // If we still don't have a name, use the user_id to create one
+          if (!userName) {
+            // Use first 6 chars of UUID as username if nothing else is available
+            userName = `User ${comment.user_id.substring(0, 6)}`;
+          }
+          
+          return {
+            id: comment.id,
+            text: comment.text,
+            createdAt: comment.created_at,
+            author: {
+              id: comment.user_id,
+              name: userName,
+              avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`
+            }
+          };
+        })
+      );
       
       setComments(commentsWithAuthors);
     } catch (error) {
@@ -230,11 +241,10 @@ const PromptDetail = () => {
             </h1>
             
             <div className="flex items-center mb-6">
-              <img 
-                src={prompt.author.avatar} 
-                alt={prompt.author.name} 
-                className="h-10 w-10 rounded-full mr-3 border-2 border-white"
-              />
+              <Avatar className="h-10 w-10 mr-3 border-2 border-white">
+                <AvatarImage src={prompt.author.avatar} alt={prompt.author.name} />
+                <AvatarFallback>{prompt.author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
               <div>
                 <p className="font-medium">{prompt.author.name}</p>
                 <div className="flex items-center text-sm text-gray-500">
