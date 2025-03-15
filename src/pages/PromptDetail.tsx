@@ -64,6 +64,16 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
+        // Generate a proper author name, avoiding any "User id" format
+        let authorName = 'Anonymous User';
+        if (promptData.profiles?.name && !promptData.profiles.name.includes('User ')) {
+          authorName = promptData.profiles.name;
+        } else if (promptData.profiles?.email) {
+          // Use email username as fallback (before the @ symbol)
+          const emailUsername = promptData.profiles.email.split('@')[0];
+          authorName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+        }
+        
         const formattedPrompt: Prompt = {
           id: promptData.id,
           title: promptData.title,
@@ -72,8 +82,8 @@ const PromptDetail = () => {
           category: promptData.category,
           author: {
             id: promptData.user_id,
-            name: promptData.profiles?.name || 'Anonymous User',
-            avatar: promptData.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(promptData.profiles?.name || 'Anonymous User')}&background=random`,
+            name: authorName,
+            avatar: promptData.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`,
             username: '',
             bio: '',
             joinedDate: promptData.created_at,
@@ -150,8 +160,15 @@ const PromptDetail = () => {
         let avatarUrl = '';
         
         if (profile) {
-          // Use profile name, or email as fallback
-          authorName = profile.name || profile.email || authorName;
+          // Avoid using "User id" format names
+          if (profile.name && !profile.name.includes('User ')) {
+            authorName = profile.name;
+          } else if (profile.email) {
+            // Use email username as fallback (before the @ symbol)
+            const emailUsername = profile.email.split('@')[0];
+            authorName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+          }
+          
           avatarUrl = profile.avatar_url || '';
         }
         

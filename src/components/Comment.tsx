@@ -22,9 +22,9 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Display a reasonable name (never "Unknown User" or "User 123456") and use "Anonymous User" as fallback
+  // Get proper display name and avoid showing 'User id' format
   const authorName = comment.author.name && 
-    !comment.author.name.startsWith('User ') && 
+    !comment.author.name.includes('User ') && 
     comment.author.name !== 'Unknown User' 
       ? comment.author.name 
       : 'Anonymous User';
