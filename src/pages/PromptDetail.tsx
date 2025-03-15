@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -32,6 +31,26 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
+  const generateDisplayName = (profile: any): string => {
+    if (profile?.name && 
+        !profile.name.includes('User ') && 
+        !/^User [a-f0-9]+$/.test(profile.name) &&
+        profile.name !== 'Unknown User') {
+      return profile.name;
+    }
+    
+    if (profile?.email) {
+      const emailUsername = profile.email.split('@')[0];
+      const formattedName = emailUsername
+        .split('.')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+      return formattedName;
+    }
+    
+    return 'Anonymous User';
+  };
+
   useEffect(() => {
     const fetchPrompt = async () => {
       if (!id) return;
@@ -64,15 +83,7 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
-        // Generate a proper author name, avoiding any "User id" format
-        let authorName = 'Anonymous User';
-        if (promptData.profiles?.name && !promptData.profiles.name.includes('User ')) {
-          authorName = promptData.profiles.name;
-        } else if (promptData.profiles?.email) {
-          // Use email username as fallback (before the @ symbol)
-          const emailUsername = promptData.profiles.email.split('@')[0];
-          authorName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
-        }
+        const authorName = generateDisplayName(promptData.profiles);
         
         const formattedPrompt: Prompt = {
           id: promptData.id,
@@ -117,7 +128,6 @@ const PromptDetail = () => {
     try {
       setLoadingComments(true);
       
-      // First, fetch all comments for this prompt
       const { data: commentData, error: commentError } = await supabase
         .from('comments')
         .select('id, text, created_at, user_id')
@@ -134,16 +144,13 @@ const PromptDetail = () => {
         return;
       }
 
-      // Get unique user IDs from comments
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
       
-      // Fetch all profiles in a bulk query first
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, email, avatar_url')
         .in('id', userIds);
       
-      // Create a lookup map for profiles
       const profilesMap: Record<string, any> = {};
       if (profilesData) {
         profilesData.forEach(profile => {
@@ -151,26 +158,10 @@ const PromptDetail = () => {
         });
       }
 
-      // Map the comments with author info from the profiles map
       const commentsWithAuthors = commentData.map(comment => {
         const profile = profilesMap[comment.user_id];
-        
-        // Default name logic - try several fallbacks for the name
-        let authorName = 'Anonymous User';
-        let avatarUrl = '';
-        
-        if (profile) {
-          // Avoid using "User id" format names
-          if (profile.name && !profile.name.includes('User ')) {
-            authorName = profile.name;
-          } else if (profile.email) {
-            // Use email username as fallback (before the @ symbol)
-            const emailUsername = profile.email.split('@')[0];
-            authorName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
-          }
-          
-          avatarUrl = profile.avatar_url || '';
-        }
+        const authorName = generateDisplayName(profile);
+        const avatarUrl = profile?.avatar_url || '';
         
         return {
           id: comment.id,
