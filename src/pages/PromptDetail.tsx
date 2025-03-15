@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -126,44 +127,45 @@ const PromptDetail = () => {
       // Get unique user IDs from comments
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
       
-      // For each user ID, try to get the profile
-      // Sometimes users might be deleted but their comments remain
-      const commentsWithAuthors = await Promise.all(
-        commentData.map(async (comment) => {
-          // Try to get user email from auth.users if available (this is just a fallback)
-          let userName = '';
-          let avatarUrl = '';
-          
-          // Attempt to fetch the profile directly
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name, avatar_url, email')
-            .eq('id', comment.user_id)
-            .single();
-          
-          if (profile) {
-            userName = profile.name || profile.email || '';
-            avatarUrl = profile.avatar_url || '';
+      // Fetch all profiles in a bulk query first
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, email, avatar_url')
+        .in('id', userIds);
+      
+      // Create a lookup map for profiles
+      const profilesMap: Record<string, any> = {};
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap[profile.id] = profile;
+        });
+      }
+
+      // Map the comments with author info from the profiles map
+      const commentsWithAuthors = commentData.map(comment => {
+        const profile = profilesMap[comment.user_id];
+        
+        // Default name logic - try several fallbacks for the name
+        let authorName = 'Anonymous User';
+        let avatarUrl = '';
+        
+        if (profile) {
+          // Use profile name, or email as fallback
+          authorName = profile.name || profile.email || authorName;
+          avatarUrl = profile.avatar_url || '';
+        }
+        
+        return {
+          id: comment.id,
+          text: comment.text,
+          createdAt: comment.created_at,
+          author: {
+            id: comment.user_id,
+            name: authorName,
+            avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`
           }
-          
-          // If we still don't have a name, use the user_id to create one
-          if (!userName) {
-            // Use first 6 chars of UUID as username if nothing else is available
-            userName = `User ${comment.user_id.substring(0, 6)}`;
-          }
-          
-          return {
-            id: comment.id,
-            text: comment.text,
-            createdAt: comment.created_at,
-            author: {
-              id: comment.user_id,
-              name: userName,
-              avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`
-            }
-          };
-        })
-      );
+        };
+      });
       
       setComments(commentsWithAuthors);
     } catch (error) {
