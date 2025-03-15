@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -32,33 +31,34 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
-  // Modified to handle name persistence better
   const generateDisplayName = (profile: any): string => {
-    // First try to use the profile name if it exists and isn't system-generated
-    if (profile?.name) {
-      const name = profile.name;
+    if (!profile) return 'Anonymous User';
+    
+    if (profile.name) {
       const isSystemGenerated = 
-        name.includes('User ') || 
-        /^User [a-f0-9]+$/.test(name) ||
-        name === 'Unknown User';
+        profile.name.includes('User ') || 
+        /^User [a-f0-9]+$/.test(profile.name) ||
+        profile.name === 'Unknown User';
         
       if (!isSystemGenerated) {
-        return name;
+        return profile.name;
       }
     }
     
-    // Fall back to email-based name if available
-    if (profile?.email) {
-      const emailUsername = profile.email.split('@')[0];
-      // Format the email username into a nicer display name
-      const formattedName = emailUsername
-        .split(/[._-]/) // Split by common email username separators
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-      return formattedName;
+    if (profile.email) {
+      try {
+        const emailUsername = profile.email.split('@')[0];
+        const formattedName = emailUsername
+          .split(/[._-]/)
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+          
+        return formattedName;
+      } catch (error) {
+        console.error('Error formatting email for display name:', error);
+      }
     }
     
-    // Last resort
     return 'Anonymous User';
   };
 
@@ -94,10 +94,7 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
-        // Generate a persistent display name
         const authorName = generateDisplayName(promptData.profiles);
-        console.log('Profile data:', promptData.profiles);
-        console.log('Generated author name:', authorName);
         
         const formattedPrompt: Prompt = {
           id: promptData.id,
@@ -165,7 +162,6 @@ const PromptDetail = () => {
         .select('id, name, email, avatar_url')
         .in('id', userIds);
       
-      // Create a lookup map for quick profile access
       const profilesMap: Record<string, any> = {};
       if (profilesData) {
         profilesData.forEach(profile => {
@@ -175,13 +171,7 @@ const PromptDetail = () => {
 
       const commentsWithAuthors = commentData.map(comment => {
         const profile = profilesMap[comment.user_id];
-        // Log profile data for debugging
-        console.log('Comment profile data:', profile);
-        
         const authorName = generateDisplayName(profile);
-        console.log('Generated comment author name:', authorName);
-        
-        // Create avatar URL with fallback
         const avatarUrl = profile?.avatar_url || '';
         
         return {

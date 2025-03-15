@@ -22,21 +22,21 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Get proper display name with better persistence
-  let authorName = comment.author.name || 'Anonymous User';
-  
-  // Only filter out system-generated names if we have a name
-  if (authorName !== 'Anonymous User') {
-    // Filter out common patterns for auto-assigned user IDs
+  // Determine the author name with improved persistence
+  const determineAuthorName = () => {
+    if (!comment.author.name) return 'Anonymous User';
+    
+    // If the name matches any of these patterns, it's likely system-generated
     const isSystemGenerated = 
-      authorName.includes('User ') || 
-      authorName === 'Unknown User' ||
-      /^User [a-f0-9]+$/.test(authorName);
+      comment.author.name.includes('User ') || 
+      comment.author.name === 'Unknown User' ||
+      /^User [a-f0-9]+$/.test(comment.author.name);
       
-    if (isSystemGenerated) {
-      authorName = 'Anonymous User';
-    }
-  }
+    // Return the original name unless it's system-generated
+    return isSystemGenerated ? 'Anonymous User' : comment.author.name;
+  };
+  
+  const authorName = determineAuthorName();
   
   // Get initials for avatar fallback
   const initials = authorName
