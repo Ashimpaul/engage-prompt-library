@@ -22,18 +22,19 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Improved naming logic to avoid displaying "User id" format or unusual patterns
-  let authorName = 'Anonymous User';
+  // Get proper display name with better persistence
+  let authorName = comment.author.name || 'Anonymous User';
   
-  if (comment.author.name) {
+  // Only filter out system-generated names if we have a name
+  if (authorName !== 'Anonymous User') {
     // Filter out common patterns for auto-assigned user IDs
     const isSystemGenerated = 
-      comment.author.name.includes('User ') || 
-      comment.author.name === 'Unknown User' ||
-      /^User [a-f0-9]+$/.test(comment.author.name); // Matches patterns like "User 8f1fa5"
+      authorName.includes('User ') || 
+      authorName === 'Unknown User' ||
+      /^User [a-f0-9]+$/.test(authorName);
       
-    if (!isSystemGenerated) {
-      authorName = comment.author.name;
+    if (isSystemGenerated) {
+      authorName = 'Anonymous User';
     }
   }
   
