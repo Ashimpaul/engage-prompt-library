@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -31,34 +32,46 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
+  // Improved display name generator that better preserves the original name
   const generateDisplayName = (profile: any): string => {
     if (!profile) return 'Anonymous User';
     
-    if (profile.name) {
+    // First priority: Use the name if it exists and isn't obviously a system-generated ID
+    if (profile.name && typeof profile.name === 'string' && profile.name.trim() !== '') {
+      // System-generated names typically follow patterns like "User 123abc" or similar
       const isSystemGenerated = 
-        profile.name.includes('User ') || 
-        /^User [a-f0-9]+$/.test(profile.name) ||
-        profile.name === 'Unknown User';
-        
+        /^user\s+[a-f0-9]+$/i.test(profile.name) || // "User" followed by hex digits
+        profile.name === 'Unknown User' ||
+        profile.name === 'Anonymous User';
+      
       if (!isSystemGenerated) {
-        return profile.name;
+        // It's a real user-provided name, use it
+        return profile.name.trim();
       }
     }
     
-    if (profile.email) {
+    // Second priority: Format from email if available
+    if (profile.email && typeof profile.email === 'string') {
       try {
+        // Extract username part before the @ symbol
         const emailUsername = profile.email.split('@')[0];
+        
+        // Format it nicely: convert john.doe_smith to John Doe Smith
         const formattedName = emailUsername
-          .split(/[._-]/)
+          .split(/[._\-]/) // Split by common separators
           .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(' ');
-          
-        return formattedName;
+        
+        // Only use if we got something reasonable
+        if (formattedName && formattedName.length > 1) {
+          return formattedName;
+        }
       } catch (error) {
         console.error('Error formatting email for display name:', error);
       }
     }
     
+    // Last resort fallback
     return 'Anonymous User';
   };
 
@@ -94,7 +107,12 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
+        // Store the raw profile data for debugging
+        console.log('Raw profiles data:', promptData.profiles);
+        
+        // Generate author name from the profile data
         const authorName = generateDisplayName(promptData.profiles);
+        console.log('Generated prompt author name:', authorName);
         
         const formattedPrompt: Prompt = {
           id: promptData.id,
@@ -157,11 +175,13 @@ const PromptDetail = () => {
 
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
       
+      // Fetch all profile data for comment authors
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, email, avatar_url')
         .in('id', userIds);
       
+      // Store profiles in a map for quick lookup
       const profilesMap: Record<string, any> = {};
       if (profilesData) {
         profilesData.forEach(profile => {
@@ -169,9 +189,16 @@ const PromptDetail = () => {
         });
       }
 
+      // Log profile data for debugging
+      console.log('Comment profiles data:', profilesMap);
+
       const commentsWithAuthors = commentData.map(comment => {
         const profile = profilesMap[comment.user_id];
+        
+        // Generate display name with improved logic
         const authorName = generateDisplayName(profile);
+        console.log(`Comment author (${comment.id}) display name:`, authorName);
+        
         const avatarUrl = profile?.avatar_url || '';
         
         return {

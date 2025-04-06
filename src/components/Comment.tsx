@@ -22,23 +22,28 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Determine the author name with improved persistence
+  // Enhanced function to determine author name with better persistence
   const determineAuthorName = () => {
-    if (!comment.author.name) return 'Anonymous User';
+    // If we don't have a name, default to Anonymous User
+    if (!comment.author.name || typeof comment.author.name !== 'string' || comment.author.name.trim() === '') {
+      return 'Anonymous User';
+    }
     
-    // If the name matches any of these patterns, it's likely system-generated
+    // Check for specific patterns that indicate system-generated names
+    const name = comment.author.name.trim();
     const isSystemGenerated = 
-      comment.author.name.includes('User ') || 
-      comment.author.name === 'Unknown User' ||
-      /^User [a-f0-9]+$/.test(comment.author.name);
+      /^user\s+[a-f0-9]+$/i.test(name) ||  // "User" followed by hex digits
+      /^anonymous\s+user$/i.test(name) ||   // "Anonymous User" case insensitive
+      /^unknown\s+user$/i.test(name);       // "Unknown User" case insensitive
       
     // Return the original name unless it's system-generated
-    return isSystemGenerated ? 'Anonymous User' : comment.author.name;
+    return isSystemGenerated ? 'Anonymous User' : name;
   };
   
+  // Get the display name
   const authorName = determineAuthorName();
   
-  // Get initials for avatar fallback
+  // Get initials for avatar fallback (max 2 characters)
   const initials = authorName
     .split(' ')
     .map(name => name[0])
