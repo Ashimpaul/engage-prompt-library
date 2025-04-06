@@ -36,9 +36,9 @@ const PromptCard: React.FC<PromptCardProps> = ({
     }
   };
 
-  // Enhanced author name display
-  const getDisplayName = () => {
-    if (!prompt.author || !prompt.author.name || prompt.author.name === 'Anonymous User') {
+  // Improved author name display with consistent logic
+  const getAuthorDisplayName = () => {
+    if (!prompt.author || !prompt.author.name || prompt.author.name === 'User' || prompt.author.name === 'Anonymous User') {
       // Try to extract name from email if author.id looks like an email
       if (prompt.author && prompt.author.id && prompt.author.id.includes('@')) {
         const emailUsername = prompt.author.id.split('@')[0];
@@ -49,12 +49,12 @@ const PromptCard: React.FC<PromptCardProps> = ({
             .join(' ');
         }
       }
-      return 'User';
+      return 'Anonymous'; // Changed from 'User' to 'Anonymous'
     }
     return prompt.author.name;
   };
   
-  const authorName = getDisplayName();
+  const authorName = getAuthorDisplayName();
   
   if (variant === 'compact') {
     return (

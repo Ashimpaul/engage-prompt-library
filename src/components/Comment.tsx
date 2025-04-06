@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,14 +22,12 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Enhanced function to determine author name with straightforward logic
-  const determineAuthorName = () => {
-    // Direct console output for debugging
-    console.log('Raw comment author data:', comment.author);
-    
-    // If name is missing or empty, try to use the id as email username
+  // Simplified author name function
+  const getAuthorName = () => {
+    // If author name is missing, undefined, or empty
     if (!comment.author || !comment.author.name || comment.author.name.trim() === '') {
       if (comment.author && comment.author.id && comment.author.id.includes('@')) {
+        // Use email username as author name
         const emailUsername = comment.author.id.split('@')[0];
         if (emailUsername) {
           return emailUsername
@@ -37,30 +36,13 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             .join(' ');
         }
       }
-      return 'User';
+      return 'Anonymous'; // Changed from 'User' to 'Anonymous'
     }
     
-    const name = comment.author.name.trim();
-    
-    // Only replace with email-based name if the name is explicitly "Anonymous User"
-    if (name === 'Anonymous User' && comment.author.id && comment.author.id.includes('@')) {
-      const emailUsername = comment.author.id.split('@')[0];
-      if (emailUsername) {
-        return emailUsername
-          .split(/[._\-]/)
-          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-          .join(' ');
-      }
-    }
-    
-    return name;
+    return comment.author.name;
   };
-  
-  // Get the display name with our simplified function
-  const authorName = determineAuthorName();
-  
-  // Log for debugging
-  console.log('Final comment author display name:', authorName);
+
+  const authorName = getAuthorName();
   
   // Get initials for avatar fallback (max 2 characters)
   const initials = authorName
