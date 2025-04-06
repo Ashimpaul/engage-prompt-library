@@ -22,27 +22,32 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Simplified author name function
-  const getAuthorName = () => {
-    // If author name is missing, undefined, or empty
-    if (!comment.author || !comment.author.name || comment.author.name.trim() === '') {
-      if (comment.author && comment.author.id && comment.author.id.includes('@')) {
-        // Use email username as author name
-        const emailUsername = comment.author.id.split('@')[0];
-        if (emailUsername) {
-          return emailUsername
-            .split(/[._\-]/)
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-            .join(' ');
-        }
-      }
-      return 'Anonymous'; // Changed from 'User' to 'Anonymous'
+  // Get author display name with priority logic
+  const getAuthorDisplayName = () => {
+    // Check if we have a valid name first
+    if (comment.author?.name && 
+        comment.author.name !== 'Anonymous' && 
+        comment.author.name !== 'User' && 
+        comment.author.name !== 'Anonymous User') {
+      return comment.author.name;
     }
     
-    return comment.author.name;
+    // Next try to get name from email in author id
+    if (comment.author?.id && comment.author.id.includes('@')) {
+      const emailUsername = comment.author.id.split('@')[0];
+      if (emailUsername) {
+        return emailUsername
+          .split(/[._\-]/)
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      }
+    }
+    
+    // Fallback
+    return 'Anonymous';
   };
 
-  const authorName = getAuthorName();
+  const authorName = getAuthorDisplayName();
   
   // Get initials for avatar fallback (max 2 characters)
   const initials = authorName

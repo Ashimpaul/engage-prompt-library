@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Prompt } from '../lib/data';
@@ -38,20 +39,31 @@ const PromptCard: React.FC<PromptCardProps> = ({
 
   // Improved author name display with consistent logic
   const getAuthorDisplayName = () => {
-    if (!prompt.author || !prompt.author.name || prompt.author.name === 'User' || prompt.author.name === 'Anonymous User') {
-      // Try to extract name from email if author.id looks like an email
-      if (prompt.author && prompt.author.id && prompt.author.id.includes('@')) {
-        const emailUsername = prompt.author.id.split('@')[0];
-        if (emailUsername) {
-          return emailUsername
-            .split(/[._\-]/)
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-            .join(' ');
-        }
-      }
-      return 'Anonymous'; // Changed from 'User' to 'Anonymous'
+    // Check if we have a valid name first
+    if (prompt.author?.name && 
+        prompt.author.name !== 'Anonymous' && 
+        prompt.author.name !== 'User' && 
+        prompt.author.name !== 'Anonymous User') {
+      console.log(`Using author name from props: ${prompt.author.name}`);
+      return prompt.author.name;
     }
-    return prompt.author.name;
+    
+    // Next try to get name from email in author id
+    if (prompt.author?.id && prompt.author.id.includes('@')) {
+      const emailUsername = prompt.author.id.split('@')[0];
+      if (emailUsername) {
+        const formattedName = emailUsername
+          .split(/[._\-]/)
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+        console.log(`Using formatted email name: ${formattedName}`);
+        return formattedName;
+      }
+    }
+    
+    // Fallback
+    console.log('No valid name found, using "Anonymous"');
+    return 'Anonymous';
   };
   
   const authorName = getAuthorDisplayName();

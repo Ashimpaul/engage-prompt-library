@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -32,15 +33,21 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
+  // Improved author name display with consistent logic
   const getAuthorDisplayName = (userId: string, profileData: any): string => {
     console.log('Getting display name for user:', userId);
     console.log('Profile data:', profileData);
     
-    if (profileData?.name && profileData.name !== 'Anonymous User') {
+    // Check if we have a valid name from profile data
+    if (profileData?.name && 
+        profileData.name !== 'Anonymous' && 
+        profileData.name !== 'User' && 
+        profileData.name !== 'Anonymous User') {
       console.log('Using profile name:', profileData.name);
       return profileData.name;
     }
     
+    // Next try to get name from email in profile data
     if (profileData?.email) {
       const emailUsername = profileData.email.split('@')[0];
       if (emailUsername) {
@@ -48,11 +55,12 @@ const PromptDetail = () => {
           .split(/[._\-]/)
           .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(' ');
-        console.log('Using formatted email name:', formattedName);
+        console.log('Using formatted email name from profile:', formattedName);
         return formattedName;
       }
     }
     
+    // Next try to get name from email in userId
     if (userId && userId.includes('@')) {
       const emailUsername = userId.split('@')[0];
       if (emailUsername) {
@@ -65,7 +73,7 @@ const PromptDetail = () => {
       }
     }
     
-    console.log('No name found, using "Anonymous"');
+    console.log('No valid name found, using "Anonymous"');
     return 'Anonymous';
   };
 
@@ -76,6 +84,7 @@ const PromptDetail = () => {
       try {
         setLoading(true);
         
+        // First, try to get the prompt with the full user profile data in a single query
         const { data: promptData, error: promptError } = await supabase
           .from('user_prompts')
           .select(`
@@ -106,10 +115,12 @@ const PromptDetail = () => {
         let authorName;
         let avatarUrl = '';
         
+        // If profiles data is available directly from the join
         if (promptData.profiles) {
           authorName = getAuthorDisplayName(promptData.user_id, promptData.profiles);
           avatarUrl = promptData.profiles?.avatar_url || '';
         } else {
+          // As a fallback, fetch the profile separately
           const { data: profileData } = await supabase
             .from('profiles')
             .select('name, email, avatar_url')
@@ -350,7 +361,11 @@ const PromptDetail = () => {
                   <p className="font-medium">{prompt.author.name}</p>
                   <div className="flex items-center text-sm text-gray-500">
                     <Calendar className="inline h-4 w-4 mr-1" />
-                    {formattedDate}
+                    {new Date(prompt.createdAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                   </div>
                 </div>
               </div>
@@ -377,7 +392,10 @@ const PromptDetail = () => {
                 <div className="flex justify-between items-center mb-2">
                   <h2 className="text-xl font-bold">Prompt Content</h2>
                   <button 
-                    onClick={copyPromptToClipboard}
+                    onClick={() => {
+                      navigator.clipboard.writeText(prompt.content);
+                      toast.success('Prompt copied to clipboard!');
+                    }}
                     className="flex items-center text-primary hover:text-primary/80 text-sm font-medium"
                   >
                     <Copy className="h-4 w-4 mr-1" />
