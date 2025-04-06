@@ -36,9 +36,26 @@ const PromptCard: React.FC<PromptCardProps> = ({
     }
   };
 
-  // Display the author name, falling back to "Anonymous User" only if necessary
-  const authorName = prompt.author.name || 'Anonymous User';
-
+  // Enhanced author name display
+  const getDisplayName = () => {
+    if (!prompt.author || !prompt.author.name || prompt.author.name === 'Anonymous User') {
+      // Try to extract name from email if author.id looks like an email
+      if (prompt.author && prompt.author.id && prompt.author.id.includes('@')) {
+        const emailUsername = prompt.author.id.split('@')[0];
+        if (emailUsername) {
+          return emailUsername
+            .split(/[._\-]/)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' ');
+        }
+      }
+      return 'User';
+    }
+    return prompt.author.name;
+  };
+  
+  const authorName = getDisplayName();
+  
   if (variant === 'compact') {
     return (
       <Link 

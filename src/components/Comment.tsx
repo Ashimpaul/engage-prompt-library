@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,49 +21,46 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   // Format the date as "X time ago" (e.g., "5 minutes ago", "2 hours ago")
   const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
-  // Enhanced function to determine author name with more aggressive persistence
+  // Enhanced function to determine author name with straightforward logic
   const determineAuthorName = () => {
-    // Check if we have a name with actual content
-    if (!comment.author || !comment.author.name || typeof comment.author.name !== 'string' || comment.author.name.trim() === '') {
-      console.log('Comment author name missing or empty:', comment.id);
-      return 'Anonymous User';
+    // Direct console output for debugging
+    console.log('Raw comment author data:', comment.author);
+    
+    // If name is missing or empty, try to use the id as email username
+    if (!comment.author || !comment.author.name || comment.author.name.trim() === '') {
+      if (comment.author && comment.author.id && comment.author.id.includes('@')) {
+        const emailUsername = comment.author.id.split('@')[0];
+        if (emailUsername) {
+          return emailUsername
+            .split(/[._\-]/)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' ');
+        }
+      }
+      return 'User';
     }
     
     const name = comment.author.name.trim();
     
-    // Check for specific patterns that indicate system-generated or placeholder names
-    const isSystemGenerated = 
-      /^user\s+[a-f0-9]+$/i.test(name) ||         // "User" followed by hex digits
-      /^anonymous\s+user$/i.test(name) ||         // "Anonymous User" case insensitive
-      /^unknown\s+user$/i.test(name) ||           // "Unknown User" case insensitive
-      name === 'Anonymous User' ||                 // Exact match for Anonymous User
-      name === 'Unknown User';                     // Exact match for Unknown User
-      
-    // If it's not a real name, try to extract one from author ID if possible
-    if (isSystemGenerated && comment.author.id && comment.author.id.includes('@')) {
-      // If the ID is an email address, extract the username part
+    // Only replace with email-based name if the name is explicitly "Anonymous User"
+    if (name === 'Anonymous User' && comment.author.id && comment.author.id.includes('@')) {
       const emailUsername = comment.author.id.split('@')[0];
       if (emailUsername) {
-        const formattedName = emailUsername
-          .split(/[._\-]/) // Split by common separators
+        return emailUsername
+          .split(/[._\-]/)
           .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(' ');
-        
-        if (formattedName && formattedName.length > 1) {
-          return formattedName;
-        }
       }
     }
-      
-    // Return the original name unless it's system-generated
-    return isSystemGenerated ? 'Anonymous User' : name;
+    
+    return name;
   };
   
-  // Get the display name with our improved function
+  // Get the display name with our simplified function
   const authorName = determineAuthorName();
   
   // Log for debugging
-  console.log('Comment author display name:', authorName, 'Original:', comment.author.name);
+  console.log('Final comment author display name:', authorName);
   
   // Get initials for avatar fallback (max 2 characters)
   const initials = authorName

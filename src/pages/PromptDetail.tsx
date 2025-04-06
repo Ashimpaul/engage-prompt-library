@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -31,53 +32,42 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
+  // Simplified function to get a proper display name
   const generateDisplayName = (profile: any): string => {
-    console.log('Generating display name from profile:', profile);
+    console.log('Raw profile data for display name:', profile);
     
+    // Handle completely missing profile
     if (!profile) {
-      console.warn('Profile data is null or undefined');
-      return 'Anonymous User';
+      console.warn('Profile is null or undefined');
+      return 'User';
     }
     
-    if (profile.name && typeof profile.name === 'string' && profile.name.trim() !== '') {
-      const name = profile.name.trim();
-      
-      const isSystemGenerated = 
-        /^user\s+[a-f0-9]+$/i.test(name) || 
-        /^anonymous\s+user$/i.test(name) || 
-        /^unknown\s+user$/i.test(name) || 
-        name === 'Anonymous User' || 
-        name === 'Unknown User';
-      
-      if (!isSystemGenerated) {
-        console.log('Using real name from profile:', name);
-        return name;
-      }
-    }
-    
-    if (profile.email && typeof profile.email === 'string') {
-      try {
-        const emailUsername = profile.email.split('@')[0];
-        const formattedName = emailUsername
+    // Direct approach: Check if email exists and use it if the name is missing or Anonymous User
+    if ((!profile.name || profile.name === 'Anonymous User') && profile.email) {
+      const emailUsername = profile.email.split('@')[0];
+      if (emailUsername) {
+        console.log('Using email username:', emailUsername);
+        return emailUsername
           .split(/[._\-]/)
           .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(' ');
-        
-        if (formattedName && formattedName.length > 1) {
-          console.log('Using formatted email name:', formattedName);
-          return formattedName;
-        }
-      } catch (error) {
-        console.error('Error formatting email for display name:', error);
       }
     }
     
+    // If name exists and isn't Anonymous User, use it
+    if (profile.name && profile.name !== 'Anonymous User') {
+      console.log('Using profile name:', profile.name);
+      return profile.name;
+    }
+    
+    // Fall back to user_metadata if available
     if (profile.user_metadata && profile.user_metadata.full_name) {
+      console.log('Using metadata full name:', profile.user_metadata.full_name);
       return profile.user_metadata.full_name;
     }
     
-    console.log('Falling back to Anonymous User');
-    return 'Anonymous User';
+    console.log('Using default User name');
+    return 'User';
   };
 
   useEffect(() => {
@@ -87,7 +77,8 @@ const PromptDetail = () => {
       try {
         setLoading(true);
         
-        const { data: promptData, error: promptError } = await supabase
+        // Direct SQL query to get more complete user data
+        const { data: promptWithFullUserData, error: fullDataError } = await supabase
           .from('user_prompts')
           .select(`
             *,
@@ -101,71 +92,84 @@ const PromptDetail = () => {
           .eq('id', id)
           .single();
           
-        if (promptError) {
-          console.error('Error fetching prompt:', promptError);
+        if (fullDataError) {
+          console.error('Error fetching prompt with full user data:', fullDataError);
           setLoading(false);
-          return; // Will show "Prompt Not Found"
+          return;
         }
         
-        if (!promptData) {
+        if (!promptWithFullUserData) {
           setLoading(false);
-          return; // Will show "Prompt Not Found"
+          return;
         }
         
-        let authorName = 'Anonymous User';
+        console.log('Complete prompt data with user:', promptWithFullUserData);
+        
+        // If profiles data is incomplete, try to get user data directly from auth.users
+        let authorName = 'User';
         let avatarUrl = '';
         
-        console.log('Raw profiles data:', promptData.profiles);
-        
-        if (promptData.profiles) {
-          authorName = generateDisplayName(promptData.profiles);
-          avatarUrl = promptData.profiles?.avatar_url || '';
+        if (promptWithFullUserData.profiles) {
+          console.log('Profiles data found:', promptWithFullUserData.profiles);
+          authorName = generateDisplayName(promptWithFullUserData.profiles);
+          avatarUrl = promptWithFullUserData.profiles?.avatar_url || '';
         } else {
+          console.log('No profiles data, fetching from profiles table');
+          // Try to get user data from profiles table
           const { data: profileData } = await supabase
             .from('profiles')
             .select('name, email, avatar_url')
-            .eq('id', promptData.user_id)
+            .eq('id', promptWithFullUserData.user_id)
             .single();
           
-          console.log('Separately fetched profile data:', profileData);
-          
           if (profileData) {
+            console.log('Profile data found:', profileData);
             authorName = generateDisplayName(profileData);
             avatarUrl = profileData.avatar_url || '';
+          } else {
+            // Last resort: try to get data from auth.users through a server function
+            console.log('No profile found, using user_id for name');
+            if (promptWithFullUserData.user_id && promptWithFullUserData.user_id.includes('@')) {
+              const emailUsername = promptWithFullUserData.user_id.split('@')[0];
+              authorName = emailUsername
+                .split(/[._\-]/)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                .join(' ');
+            }
           }
         }
         
-        console.log('Generated prompt author name:', authorName);
+        console.log('Final author name:', authorName);
         
         const formattedPrompt: Prompt = {
-          id: promptData.id,
-          title: promptData.title,
-          description: promptData.description,
-          content: promptData.content,
-          category: promptData.category,
+          id: promptWithFullUserData.id,
+          title: promptWithFullUserData.title,
+          description: promptWithFullUserData.description,
+          content: promptWithFullUserData.content,
+          category: promptWithFullUserData.category,
           author: {
-            id: promptData.user_id,
+            id: promptWithFullUserData.user_id,
             name: authorName,
             avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`,
             username: '',
             bio: '',
-            joinedDate: promptData.created_at,
+            joinedDate: promptWithFullUserData.created_at,
             contributions: 0
           },
-          tags: promptData.tags || [],
-          upvotes: promptData.upvotes,
-          downvotes: promptData.downvotes,
-          createdAt: promptData.created_at,
-          updatedAt: promptData.updated_at,
-          usageInstructions: promptData.usage_instructions || [],
-          aiModels: promptData.ai_models || [],
+          tags: promptWithFullUserData.tags || [],
+          upvotes: promptWithFullUserData.upvotes,
+          downvotes: promptWithFullUserData.downvotes,
+          createdAt: promptWithFullUserData.created_at,
+          updatedAt: promptWithFullUserData.updated_at,
+          usageInstructions: promptWithFullUserData.usage_instructions || [],
+          aiModels: promptWithFullUserData.ai_models || [],
           isFeatured: false,
           isTrending: false
         };
         
         setPrompt(formattedPrompt);
         
-        loadComments(promptData.id);
+        loadComments(promptWithFullUserData.id);
       } catch (error) {
         console.error('Error fetching prompt:', error);
       } finally {
@@ -180,6 +184,7 @@ const PromptDetail = () => {
     try {
       setLoadingComments(true);
       
+      // Get comments with more direct user data
       const { data: commentData, error: commentError } = await supabase
         .from('comments')
         .select('id, text, created_at, user_id')
@@ -197,11 +202,15 @@ const PromptDetail = () => {
       }
 
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
+      console.log('Comment user IDs:', userIds);
       
+      // Fetch all relevant user profiles
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, email, avatar_url')
         .in('id', userIds);
+      
+      console.log('Comment profiles raw data:', profilesData);
       
       const profilesMap: Record<string, any> = {};
       if (profilesData) {
@@ -210,13 +219,12 @@ const PromptDetail = () => {
         });
       }
 
-      console.log('Comment profiles data:', profilesMap);
-
       const commentsWithAuthors = commentData.map(comment => {
         const profile = profilesMap[comment.user_id];
+        console.log(`Processing comment ${comment.id} with profile:`, profile);
         
-        const authorName = generateDisplayName(profile);
-        console.log(`Comment author (${comment.id}) display name:`, authorName);
+        const authorName = generateDisplayName(profile || { id: comment.user_id });
+        console.log(`Generated comment author name for ${comment.id}:`, authorName);
         
         const avatarUrl = profile?.avatar_url || '';
         
