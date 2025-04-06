@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -32,38 +31,40 @@ const PromptDetail = () => {
   const [showComments, setShowComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
 
-  // Improved display name generator that better preserves the original name
   const generateDisplayName = (profile: any): string => {
-    if (!profile) return 'Anonymous User';
+    console.log('Generating display name from profile:', profile);
     
-    // First priority: Use the name if it exists and isn't obviously a system-generated ID
+    if (!profile) {
+      console.warn('Profile data is null or undefined');
+      return 'Anonymous User';
+    }
+    
     if (profile.name && typeof profile.name === 'string' && profile.name.trim() !== '') {
-      // System-generated names typically follow patterns like "User 123abc" or similar
+      const name = profile.name.trim();
+      
       const isSystemGenerated = 
-        /^user\s+[a-f0-9]+$/i.test(profile.name) || // "User" followed by hex digits
-        profile.name === 'Unknown User' ||
-        profile.name === 'Anonymous User';
+        /^user\s+[a-f0-9]+$/i.test(name) || 
+        /^anonymous\s+user$/i.test(name) || 
+        /^unknown\s+user$/i.test(name) || 
+        name === 'Anonymous User' || 
+        name === 'Unknown User';
       
       if (!isSystemGenerated) {
-        // It's a real user-provided name, use it
-        return profile.name.trim();
+        console.log('Using real name from profile:', name);
+        return name;
       }
     }
     
-    // Second priority: Format from email if available
     if (profile.email && typeof profile.email === 'string') {
       try {
-        // Extract username part before the @ symbol
         const emailUsername = profile.email.split('@')[0];
-        
-        // Format it nicely: convert john.doe_smith to John Doe Smith
         const formattedName = emailUsername
-          .split(/[._\-]/) // Split by common separators
+          .split(/[._\-]/)
           .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(' ');
         
-        // Only use if we got something reasonable
         if (formattedName && formattedName.length > 1) {
+          console.log('Using formatted email name:', formattedName);
           return formattedName;
         }
       } catch (error) {
@@ -71,7 +72,11 @@ const PromptDetail = () => {
       }
     }
     
-    // Last resort fallback
+    if (profile.user_metadata && profile.user_metadata.full_name) {
+      return profile.user_metadata.full_name;
+    }
+    
+    console.log('Falling back to Anonymous User');
     return 'Anonymous User';
   };
 
@@ -107,11 +112,29 @@ const PromptDetail = () => {
           return; // Will show "Prompt Not Found"
         }
         
-        // Store the raw profile data for debugging
+        let authorName = 'Anonymous User';
+        let avatarUrl = '';
+        
         console.log('Raw profiles data:', promptData.profiles);
         
-        // Generate author name from the profile data
-        const authorName = generateDisplayName(promptData.profiles);
+        if (promptData.profiles) {
+          authorName = generateDisplayName(promptData.profiles);
+          avatarUrl = promptData.profiles?.avatar_url || '';
+        } else {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name, email, avatar_url')
+            .eq('id', promptData.user_id)
+            .single();
+          
+          console.log('Separately fetched profile data:', profileData);
+          
+          if (profileData) {
+            authorName = generateDisplayName(profileData);
+            avatarUrl = profileData.avatar_url || '';
+          }
+        }
+        
         console.log('Generated prompt author name:', authorName);
         
         const formattedPrompt: Prompt = {
@@ -123,7 +146,7 @@ const PromptDetail = () => {
           author: {
             id: promptData.user_id,
             name: authorName,
-            avatar: promptData.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`,
+            avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`,
             username: '',
             bio: '',
             joinedDate: promptData.created_at,
@@ -175,13 +198,11 @@ const PromptDetail = () => {
 
       const userIds = [...new Set(commentData.map(comment => comment.user_id))];
       
-      // Fetch all profile data for comment authors
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, email, avatar_url')
         .in('id', userIds);
       
-      // Store profiles in a map for quick lookup
       const profilesMap: Record<string, any> = {};
       if (profilesData) {
         profilesData.forEach(profile => {
@@ -189,13 +210,11 @@ const PromptDetail = () => {
         });
       }
 
-      // Log profile data for debugging
       console.log('Comment profiles data:', profilesMap);
 
       const commentsWithAuthors = commentData.map(comment => {
         const profile = profilesMap[comment.user_id];
         
-        // Generate display name with improved logic
         const authorName = generateDisplayName(profile);
         console.log(`Comment author (${comment.id}) display name:`, authorName);
         
